@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Knowledge Journal</title>
+    <link rel="icon" type="image/x-icon" href="https://www.iconarchive.com/download/i75808/martz90/circle/books.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              'sans': ['Georgia', 'serif'],
+            },
+            colors: {
+              'background': 'var(--color-background)',
+              'surface': 'var(--color-surface)',
+              'surface-light': 'var(--color-surface-light)',
+              'primary': 'var(--color-primary)',
+              'secondary': 'var(--color-secondary)',
+              'border': 'var(--color-border)',
+              'highlight': 'rgba(var(--color-accent-rgb), 0.1)',
+              'accent': 'var(--color-accent)',
+              'accent-pink': 'var(--color-accent)',
+              'accent-green': 'var(--color-accent-2)',
+              'accent-peach': 'var(--color-accent-3)',
+              'accent-sky': 'var(--color-accent-4)',
+              'accent-lavender': 'var(--color-accent-5)',
+            },
+          }
+        }
+      }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/"
+  }
+}
+</script>
+<style>
+  :root {
+    --color-background: #201f24;
+    --color-surface: #2a282f;
+    --color-surface-light: #3b3842;
+    --color-primary: #f5e6e8;
+    --color-secondary: #a099a6;
+    --color-border: #3b3842;
+    --color-accent: #ffc0cb;
+    --color-accent-rgb: 255, 192, 203;
+    --color-accent-2: #c5e8d8;
+    --color-accent-3: #ffddc1;
+    --color-accent-4: #c8e0f4;
+    --color-accent-5: #daccff;
+  }
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.5s ease;
+    font-size: 17px;
+  }
+  .material-symbols-outlined {
+    font-variation-settings:
+    'FILL' 0,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 24
+  }
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-surface);
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--color-border);
+    border-radius: 10px;
+    border: 2px solid var(--color-surface);
+  }
+
+  @keyframes wave {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+</style>
+</head>
+  <body class="bg-background text-primary font-sans">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
