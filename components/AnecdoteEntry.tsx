@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Anecdote } from '../types';
 import { EditIcon } from './icons';
 import { MarkdownPreview } from './MarkdownPreview';
+import ErrorBoundary from './ErrorBoundary';
 
 interface AnecdoteEntryProps {
     anecdote: Anecdote;
@@ -95,7 +96,9 @@ export const AnecdoteEntry: React.FC<AnecdoteEntryProps> = ({ anecdote, isEditin
                 onMouseEnter={() => activePane.current = 'preview'}
                 className="w-full bg-surface-light border border-border rounded-md p-3 h-96 overflow-y-auto"
               >
-                <MarkdownPreview content={editedText} selectionHighlight={selectedText} />
+                <ErrorBoundary key={editedText}>
+                  <MarkdownPreview content={editedText} selectionHighlight={selectedText} />
+                </ErrorBoundary>
               </div>
             </div>
           </div>
@@ -117,7 +120,9 @@ export const AnecdoteEntry: React.FC<AnecdoteEntryProps> = ({ anecdote, isEditin
           <EditIcon className="w-4 h-4" />
         </button>
         <div className="pr-8">
-            <MarkdownPreview content={anecdote.text} highlightTerm={searchQuery} />
+            <ErrorBoundary key={anecdote.id}>
+                <MarkdownPreview content={anecdote.text} highlightTerm={searchQuery} />
+            </ErrorBoundary>
         </div>
       </article>
     );
