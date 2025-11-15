@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { SettingsIcon, CloseIcon, SpaIcon, SearchIcon } from './components/icons';
 import { applyTheme } from './services/themeGenerator';
@@ -105,7 +106,7 @@ function App() {
         for (const [date, content] of entries) {
             zip.file(`${date}.md`, content);
         }
-        // FIX: The untyped JSZip library returns a Promise<any>, which can be inferred as `unknown`
+        // Fix: The untyped JSZip library returns a Promise<any>, which can be inferred as `unknown`
         // in strict TypeScript environments. Explicitly typing the awaited result as a Blob
         // resolves the "not assignable to BlobPart" error and ensures compatibility with `downloadBlob`.
         const zipBlob: Blob = await zip.generateAsync({ type: 'blob' });
@@ -411,7 +412,6 @@ function App() {
                             
                             {Object.keys(groupedAnecdotes).length > 0 ? (
                                 <div className="space-y-8">
-                                    {/* Fix: Replaced Object.entries with Object.keys to avoid type inference issues with the `entries` value. */}
                                     {Object.keys(groupedAnecdotes).map((date) => (
                                         <div key={date}>
                                             <h2 className="text-xl font-bold text-primary mb-4 pb-2 border-b-2 border-border">

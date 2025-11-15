@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Anecdote } from '../types';
 import { EditIcon } from './icons';
 import { MarkdownPreview } from './MarkdownPreview';
@@ -15,9 +15,15 @@ interface AnecdoteEntryProps {
 
 export const AnecdoteEntry: React.FC<AnecdoteEntryProps> = ({ anecdote, isEditing, onEdit, onSave, onCancel, searchQuery }) => {
     const [editedText, setEditedText] = useState(anecdote.text);
+    const [selectedText, setSelectedText] = useState('');
+
+    const editorRef = useRef<HTMLTextAreaElement>(null);
+    const previewRef = useRef<HTMLDivElement>(null);
+    const activePane = useRef<'editor' | 'preview' | null>(null);
   
     useEffect(() => {
       setEditedText(anecdote.text);
+      setSelectedText(''); // Reset selection when anecdote changes or editing starts
     }, [anecdote, isEditing]);
   
     const handleSaveClick = () => {
@@ -25,6 +31,36 @@ export const AnecdoteEntry: React.FC<AnecdoteEntryProps> = ({ anecdote, isEditin
         ...anecdote,
         text: editedText,
       });
+    };
+
+    const handleSelect = (e: React.SyntheticEvent<HTMLTextAreaElement>) => {
+      const target = e.currentTarget;
+      const selection = target.value.substring(target.selectionStart, target.selectionEnd);
+      setSelectedText(selection);
+    };
+
+    const handleScroll = (scrolledPane: 'editor' | 'preview') => {
+        // Only sync if the scrolled pane is the one the user is interacting with
+        if (activePane.current !== scrolledPane) {
+            return;
+        }
+        
+        const sourceEl = scrolledPane === 'editor' ? editorRef.current : previewRef.current;
+        const targetEl = scrolledPane === 'editor' ? previewRef.current : editorRef.current;
+        
+        if (!sourceEl || !targetEl) return;
+        
+        const sourceScrollTop = sourceEl.scrollTop;
+        const sourceScrollHeight = sourceEl.scrollHeight - sourceEl.clientHeight;
+        
+        // Avoid division by zero
+        if (sourceScrollHeight <= 0) return;
+        
+        const scrollPercentage = sourceScrollTop / sourceScrollHeight;
+        
+        const targetScrollHeight = targetEl.scrollHeight - targetEl.clientHeight;
+        
+        targetEl.scrollTop = scrollPercentage * targetScrollHeight;
     };
   
     if (isEditing) {
@@ -38,8 +74,12 @@ export const AnecdoteEntry: React.FC<AnecdoteEntryProps> = ({ anecdote, isEditin
               </label>
               <textarea
                 id={`editor-${anecdote.id}`}
+                ref={editorRef}
                 value={editedText}
                 onChange={(e) => setEditedText(e.target.value)}
+                onSelect={handleSelect}
+                onScroll={() => handleScroll('editor')}
+                onMouseEnter={() => activePane.current = 'editor'}
                 className="w-full bg-surface-light border border-border rounded-md px-3 py-2 text-secondary placeholder-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent h-96 resize-y font-mono"
                 aria-label="Text bearbeiten"
               />
@@ -49,8 +89,13 @@ export const AnecdoteEntry: React.FC<AnecdoteEntryProps> = ({ anecdote, isEditin
               <label className="block text-sm font-medium text-secondary mb-2">
                 Vorschau
               </label>
-              <div className="w-full bg-surface-light border border-border rounded-md p-3 h-96 overflow-y-auto">
-                <MarkdownPreview content={editedText} />
+              <div 
+                ref={previewRef}
+                onScroll={() => handleScroll('preview')}
+                onMouseEnter={() => activePane.current = 'preview'}
+                className="w-full bg-surface-light border border-border rounded-md p-3 h-96 overflow-y-auto"
+              >
+                <MarkdownPreview content={editedText} selectionHighlight={selectedText} />
               </div>
             </div>
           </div>

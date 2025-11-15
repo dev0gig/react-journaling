@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { HighlightedText } from './HighlightedText';
 
@@ -8,7 +9,7 @@ import { HighlightedText } from './HighlightedText';
  * @param highlightTerm The term to highlight within the text.
  * @returns A React.ReactNode with parsed and styled inline elements.
  */
-const parseInlineText = (text: string, highlightTerm?: string): React.ReactNode => {
+const parseInlineText = (text: string, highlightTerm?: string, selectionHighlight?: string): React.ReactNode => {
     if (!text) return null;
 
     // This comprehensive regex captures both Markdown and HTML inline elements.
@@ -22,24 +23,24 @@ const parseInlineText = (text: string, highlightTerm?: string): React.ReactNode 
 
                 // Bold (MD and HTML)
                 if ((part.startsWith('**') && part.endsWith('**')) || (part.startsWith('__') && part.endsWith('__'))) {
-                    return <strong key={index}>{parseInlineText(part.slice(2, -2), highlightTerm)}</strong>;
+                    return <strong key={index}>{parseInlineText(part.slice(2, -2), highlightTerm, selectionHighlight)}</strong>;
                 }
                 if ((part.startsWith('<strong>') && part.endsWith('</strong>'))) {
-                    return <strong key={index}>{parseInlineText(part.slice(8, -9), highlightTerm)}</strong>;
+                    return <strong key={index}>{parseInlineText(part.slice(8, -9), highlightTerm, selectionHighlight)}</strong>;
                 }
                 if ((part.startsWith('<b>') && part.endsWith('</b>'))) {
-                    return <strong key={index}>{parseInlineText(part.slice(3, -4), highlightTerm)}</strong>;
+                    return <strong key={index}>{parseInlineText(part.slice(3, -4), highlightTerm, selectionHighlight)}</strong>;
                 }
 
                 // Italic (MD and HTML)
                 if ((part.startsWith('*') && part.endsWith('*')) || (part.startsWith('_') && part.endsWith('_'))) {
-                    return <em key={index}>{parseInlineText(part.slice(1, -1), highlightTerm)}</em>;
+                    return <em key={index}>{parseInlineText(part.slice(1, -1), highlightTerm, selectionHighlight)}</em>;
                 }
                 if ((part.startsWith('<em>') && part.endsWith('</em>'))) {
-                    return <em key={index}>{parseInlineText(part.slice(4, -5), highlightTerm)}</em>;
+                    return <em key={index}>{parseInlineText(part.slice(4, -5), highlightTerm, selectionHighlight)}</em>;
                 }
                 if ((part.startsWith('<i>') && part.endsWith('</i>'))) {
-                    return <em key={index}>{parseInlineText(part.slice(3, -4), highlightTerm)}</em>;
+                    return <em key={index}>{parseInlineText(part.slice(3, -4), highlightTerm, selectionHighlight)}</em>;
                 }
                 
                 // Code (MD and HTML)
@@ -63,15 +64,15 @@ const parseInlineText = (text: string, highlightTerm?: string): React.ReactNode 
                 // Link (MD and HTML)
                 if (part.startsWith('[')) {
                     const [, linkText, href] = part.match(/\[(.*?)\]\((.*?)\)/) || [];
-                    return <a key={index} href={href} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">{parseInlineText(linkText, highlightTerm)}</a>;
+                    return <a key={index} href={href} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">{parseInlineText(linkText, highlightTerm, selectionHighlight)}</a>;
                 }
                 if (part.startsWith('<a')) {
                     const [, href, linkText] = part.match(/<a href="(.*?)"(?:.*?)>(.*?)<\/a>/) || [];
-                    return <a key={index} href={href} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">{parseInlineText(linkText, highlightTerm)}</a>;
+                    return <a key={index} href={href} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">{parseInlineText(linkText, highlightTerm, selectionHighlight)}</a>;
                 }
                 
                 // Plain text
-                return <HighlightedText key={index} text={part} highlight={highlightTerm} />;
+                return <HighlightedText key={index} text={part} highlight={highlightTerm} selection={selectionHighlight} />;
             })}
         </>
     );
@@ -80,7 +81,7 @@ const parseInlineText = (text: string, highlightTerm?: string): React.ReactNode 
 /**
  * Recursively renders Markdown list lines into nested <ul> or <ol> React elements.
  */
-const renderList = (listLines: string[], highlightTerm?: string, keyPrefix: string | number = ''): React.ReactNode => {
+const renderList = (listLines: string[], highlightTerm?: string, selectionHighlight?: string, keyPrefix: string | number = ''): React.ReactNode => {
     if (listLines.length === 0) return null;
 
     const items: React.ReactNode[] = [];
@@ -99,8 +100,8 @@ const renderList = (listLines: string[], highlightTerm?: string, keyPrefix: stri
         if (currentItemContent) {
             items.push(
                 <li key={`${keyPrefix}-${items.length}`}>
-                    {parseInlineText(currentItemContent, highlightTerm)}
-                    {sublistLines.length > 0 && renderList(sublistLines, highlightTerm, `${keyPrefix}-${items.length}-sub`)}
+                    {parseInlineText(currentItemContent, highlightTerm, selectionHighlight)}
+                    {sublistLines.length > 0 && renderList(sublistLines, highlightTerm, selectionHighlight, `${keyPrefix}-${items.length}-sub`)}
                 </li>
             );
         }
@@ -171,7 +172,7 @@ const findBalancedTagContent = (lines: string[], startIndex: number, tagName: st
 /**
  * Renders a full Markdown and HTML string into styled React components.
  */
-const MarkdownRenderer: React.FC<{ markdown: string; highlightTerm?: string }> = ({ markdown, highlightTerm }) => {
+const MarkdownRenderer: React.FC<{ markdown: string; highlightTerm?: string; selectionHighlight?: string }> = ({ markdown, highlightTerm, selectionHighlight }) => {
     const lines = markdown.split('\n');
     const elements: React.ReactNode[] = [];
     let i = 0;
@@ -199,7 +200,7 @@ const MarkdownRenderer: React.FC<{ markdown: string; highlightTerm?: string }> =
                 h6: 'text-xs font-semibold text-secondary mt-2 mb-1 uppercase tracking-wider',
             };
             // FIX: Use React.createElement for dynamic tags to avoid JSX type errors.
-            elements.push(React.createElement(Tag, { key: i, className: classNames[`h${level}`] }, parseInlineText(content, highlightTerm)));
+            elements.push(React.createElement(Tag, { key: i, className: classNames[`h${level}`] }, parseInlineText(content, highlightTerm, selectionHighlight)));
             i++;
             continue;
         }
@@ -225,14 +226,14 @@ const MarkdownRenderer: React.FC<{ markdown: string; highlightTerm?: string }> =
                     blockLines = result.content.split('\n');
                     i = result.nextIndex;
                 } else { // Malformed, treat as paragraph
-                    elements.push(<p key={i} className="text-secondary leading-relaxed my-2">{parseInlineText(line, highlightTerm)}</p>);
+                    elements.push(<p key={i} className="text-secondary leading-relaxed my-2">{parseInlineText(line, highlightTerm, selectionHighlight)}</p>);
                     i++;
                     continue;
                 }
             }
             elements.push(
                 <blockquote key={i} className="border-l-4 border-accent/50 pl-4 py-2 my-4 text-secondary/90 italic">
-                    <MarkdownRenderer markdown={blockLines.join('\n')} highlightTerm={highlightTerm} />
+                    <MarkdownRenderer markdown={blockLines.join('\n')} highlightTerm={highlightTerm} selectionHighlight={selectionHighlight} />
                 </blockquote>
             );
             continue;
@@ -255,7 +256,7 @@ const MarkdownRenderer: React.FC<{ markdown: string; highlightTerm?: string }> =
                         break;
                     }
                 }
-                elements.push(renderList(listLines, highlightTerm, i));
+                elements.push(renderList(listLines, highlightTerm, selectionHighlight, i));
             } else { // HTML List
                 // FIX: Rename listTag to ListTag for JSX compatibility and fix typo.
                 const ListTag = line.trim().startsWith('<ul>') ? 'ul' : 'ol';
@@ -268,14 +269,14 @@ const MarkdownRenderer: React.FC<{ markdown: string; highlightTerm?: string }> =
                     while ((match = liRegex.exec(result.content)) !== null) {
                         listItems.push(
                             <li key={listItems.length}>
-                                <MarkdownRenderer markdown={match[1].trim()} highlightTerm={highlightTerm} />
+                                <MarkdownRenderer markdown={match[1].trim()} highlightTerm={highlightTerm} selectionHighlight={selectionHighlight} />
                             </li>
                         );
                     }
                     elements.push(<div key={i}><ListTag className={`${listStyle} pl-6 my-2 text-secondary space-y-1.5`}>{listItems}</ListTag></div>);
                     i = result.nextIndex;
                 } else { // Malformed
-                    elements.push(<p key={i} className="text-secondary leading-relaxed my-2">{parseInlineText(line, highlightTerm)}</p>);
+                    elements.push(<p key={i} className="text-secondary leading-relaxed my-2">{parseInlineText(line, highlightTerm, selectionHighlight)}</p>);
                     i++;
                 }
             }
@@ -295,7 +296,7 @@ const MarkdownRenderer: React.FC<{ markdown: string; highlightTerm?: string }> =
         }
         
         if (paragraphLines.length > 0) {
-            elements.push(<p key={i} className="text-secondary leading-relaxed my-2">{parseInlineText(paragraphLines.join('\n'), highlightTerm)}</p>);
+            elements.push(<p key={i} className="text-secondary leading-relaxed my-2">{parseInlineText(paragraphLines.join('\n'), highlightTerm, selectionHighlight)}</p>);
         }
     }
 
@@ -306,6 +307,6 @@ const MarkdownRenderer: React.FC<{ markdown: string; highlightTerm?: string }> =
  * A component to preview Markdown content. It takes a raw Markdown string
  * and an optional term to highlight, then renders it as styled HTML.
  */
-export const MarkdownPreview: React.FC<{ content: string, highlightTerm?: string }> = ({ content, highlightTerm }) => {
-    return <MarkdownRenderer markdown={content} highlightTerm={highlightTerm} />;
+export const MarkdownPreview: React.FC<{ content: string, highlightTerm?: string, selectionHighlight?: string }> = ({ content, highlightTerm, selectionHighlight }) => {
+    return <MarkdownRenderer markdown={content} highlightTerm={highlightTerm} selectionHighlight={selectionHighlight} />;
 };
