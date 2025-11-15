@@ -1,9 +1,3 @@
-
-
-
-
-
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { SettingsIcon, CloseIcon, SpaIcon, SearchIcon } from './components/icons';
 import { applyTheme } from './services/themeGenerator';
@@ -111,10 +105,10 @@ function App() {
         for (const [date, content] of entries) {
             zip.file(`${date}.md`, content);
         }
-        // The JSZip library is not typed, so `generateAsync` returns a Promise<any>.
-        // We cast the result to `Blob` to satisfy the `downloadBlob` function's signature.
-        // Fix for: Type 'unknown' is not assignable to type 'BlobPart'.
-        const zipBlob = (await zip.generateAsync({ type: 'blob' })) as Blob;
+        // FIX: The untyped JSZip library returns a Promise<any>, which can be inferred as `unknown`
+        // in strict TypeScript environments. Explicitly typing the awaited result as a Blob
+        // resolves the "not assignable to BlobPart" error and ensures compatibility with `downloadBlob`.
+        const zipBlob: Blob = await zip.generateAsync({ type: 'blob' });
         downloadBlob(zipBlob, 'journal_export.zip');
     }
     setIsSettingsOpen(false);
