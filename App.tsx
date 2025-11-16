@@ -1,6 +1,8 @@
 
 
 
+
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { SettingsIcon, CloseIcon, SpaIcon, SearchIcon } from './components/icons';
 import { applyTheme } from './services/themeGenerator';
@@ -16,6 +18,7 @@ import { Calendar } from './components/Calendar';
 import { MonthlySummary } from './components/MonthlySummary';
 import { AnecdoteEntry } from './components/AnecdoteEntry';
 import { StatsWidget } from './components/StatsWidget';
+import { EditModal } from './components/EditModal';
 
 
 declare var JSZip: any;
@@ -108,9 +111,9 @@ function App() {
         for (const [date, content] of entries) {
             zip.file(`${date}.md`, content);
         }
-        // Fix: Type 'unknown' is not assignable to type 'BlobPart'.
+        // FIX: Type 'unknown' is not assignable to type 'BlobPart'.
         // The untyped JSZip library returns a Promise<any>, which can be inferred as `unknown`
-        // in strict TypeScript environments. Using a type assertion `as Blob` ensures compatibility
+        // in strict TypeScript environments. A type assertion `as Blob` ensures compatibility
         // with `downloadBlob`.
         const zipBlob = await zip.generateAsync({ type: 'blob' }) as Blob;
         downloadBlob(zipBlob, 'journal_export.zip');
@@ -291,6 +294,11 @@ function App() {
       setSearchQuery('');
   };
 
+  const anecdoteToEdit = useMemo(() => 
+    editingAnecdoteId ? anecdotes.find(a => a.id === editingAnecdoteId) || null : null,
+    [editingAnecdoteId, anecdotes]
+  );
+
 
   if (currentView === 'converter') {
     return <MoleskineConverter onBack={() => setCurrentView('journal')} onAddToJournal={addEntriesToJournal} />;
@@ -324,6 +332,12 @@ function App() {
             onImport={handleImport}
             currentThemeId={themeId}
             onThemeChange={setThemeId}
+        />
+
+        <EditModal 
+            anecdote={anecdoteToEdit}
+            onSave={handleSaveAnecdote}
+            onClose={() => setEditingAnecdoteId(null)}
         />
         
         <HeaderBanner imageUrl={bannerUrl || DEFAULT_BANNER_URL} />
@@ -425,10 +439,7 @@ function App() {
                                                     <AnecdoteEntry
                                                         key={anecdote.id}
                                                         anecdote={anecdote}
-                                                        isEditing={editingAnecdoteId === anecdote.id}
-                                                        onEdit={(id) => setEditingAnecdoteId(id)}
-                                                        onSave={handleSaveAnecdote}
-                                                        onCancel={() => setEditingAnecdoteId(null)}
+                                                        onEdit={setEditingAnecdoteId}
                                                         searchQuery={searchQuery}
                                                     />
                                                 ))}

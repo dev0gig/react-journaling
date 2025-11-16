@@ -1,6 +1,8 @@
 
 
 
+
+
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 
 interface Props {
@@ -40,7 +42,7 @@ class ErrorBoundary extends Component<Props, State> {
       );
     }
 
-    // Fix: In a class component, props must be accessed via `this.props`.
+    // FIX: In a class component, props must be accessed via `this.props`.
     return this.props.children;
   }
 }
