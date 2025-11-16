@@ -1,8 +1,4 @@
 
-
-
-
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { SettingsIcon, CloseIcon, SpaIcon, SearchIcon } from './components/icons';
 import { applyTheme } from './services/themeGenerator';
@@ -111,10 +107,9 @@ function App() {
         for (const [date, content] of entries) {
             zip.file(`${date}.md`, content);
         }
-        // FIX: Type 'unknown' is not assignable to type 'BlobPart'.
-        // The untyped JSZip library returns a Promise<any>, which can be inferred as `unknown`
-        // in strict TypeScript environments. A type assertion `as Blob` ensures compatibility
-        // with `downloadBlob`.
+        // FIX: The `generateAsync` method from the untyped JSZip library returns a Promise<any>,
+        // which TypeScript infers as `unknown`. A type assertion to `Blob` is necessary to
+        // satisfy the `downloadBlob` function's parameter type.
         const zipBlob = await zip.generateAsync({ type: 'blob' }) as Blob;
         downloadBlob(zipBlob, 'journal_export.zip');
     }
