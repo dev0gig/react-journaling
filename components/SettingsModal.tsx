@@ -1,13 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
-import { themes } from '../constants';
+import { themes, DEFAULT_BANNER_URL } from '../constants';
 import { CloseIcon, UploadIcon, DownloadIcon, BowIcon } from './icons';
 
 interface SettingsModalProps {
     isOpen: boolean;
     onClose: () => void;
     currentUrl: string;
-    onSave: (url: string) => void;
+    currentPositionY: number;
+    onSave: (url: string, positionY: number) => void;
     onSwitchToConverter: () => void;
     onExport: () => void;
     onImport: (event: React.ChangeEvent<HTMLInputElement>) => void;
@@ -15,12 +16,14 @@ interface SettingsModalProps {
     onThemeChange: (themeId: string) => void;
 }
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, currentUrl, onSave, onSwitchToConverter, onExport, onImport, currentThemeId, onThemeChange }) => {
+export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, currentUrl, currentPositionY, onSave, onSwitchToConverter, onExport, onImport, currentThemeId, onThemeChange }) => {
     const [url, setUrl] = useState(currentUrl);
+    const [positionY, setPositionY] = useState(currentPositionY);
 
     useEffect(() => {
         setUrl(currentUrl);
-    }, [currentUrl, isOpen]);
+        setPositionY(currentPositionY);
+    }, [currentUrl, currentPositionY, isOpen]);
     
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
@@ -40,12 +43,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, c
     if (!isOpen) return null;
 
     const handleSave = () => {
-        onSave(url);
+        onSave(url, positionY);
         onClose();
     };
 
     const handleRemove = () => {
-        onSave('');
+        onSave('', 50);
         onClose();
     };
 
@@ -81,6 +84,32 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, c
                         placeholder="https://beispiel.com/bild.jpg"
                     />
                 </div>
+
+                <div className="mt-4">
+                    <label htmlFor="banner-position" className="block text-sm font-medium text-secondary mb-2">
+                        Vertikale Position
+                    </label>
+                    <div
+                        className="w-full h-24 rounded-md bg-cover bg-no-repeat mb-3 border border-border"
+                        style={{
+                            backgroundImage: `url('${url || DEFAULT_BANNER_URL}')`,
+                            backgroundPosition: `center ${positionY}%`
+                        }}
+                        role="img"
+                        aria-label="Banner Vorschau"
+                    ></div>
+                    <input
+                        type="range"
+                        id="banner-position"
+                        min="0"
+                        max="100"
+                        value={positionY}
+                        onChange={(e) => setPositionY(Number(e.target.value))}
+                        className="w-full h-2 bg-surface-light rounded-lg appearance-none cursor-pointer accent-accent"
+                        aria-label="Banner Position anpassen"
+                    />
+                </div>
+
                 <div className="mt-6 flex justify-between items-center">
                     <button
                         onClick={handleRemove}

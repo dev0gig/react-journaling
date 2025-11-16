@@ -1,4 +1,8 @@
 
+
+
+
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { SettingsIcon, CloseIcon, SpaIcon, SearchIcon } from './components/icons';
 import { applyTheme } from './services/themeGenerator';
@@ -26,6 +30,9 @@ function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [bannerUrl, setBannerUrl] = useState(() => {
     return localStorage.getItem('journalBannerUrl') || DEFAULT_BANNER_URL;
+  });
+  const [bannerPositionY, setBannerPositionY] = useState(() => {
+    return Number(localStorage.getItem('journalBannerPositionY')) || 50;
   });
   const [themeId, setThemeId] = useState(() => {
     return localStorage.getItem('journalThemeId') || DEFAULT_THEME_ID;
@@ -55,6 +62,10 @@ function App() {
   useEffect(() => {
     localStorage.setItem('journalBannerUrl', bannerUrl);
   }, [bannerUrl]);
+
+  useEffect(() => {
+    localStorage.setItem('journalBannerPositionY', String(bannerPositionY));
+  }, [bannerPositionY]);
 
   useEffect(() => {
     localStorage.setItem('journalThemeId', themeId);
@@ -107,9 +118,8 @@ function App() {
         for (const [date, content] of entries) {
             zip.file(`${date}.md`, content);
         }
-        // FIX: The `generateAsync` method from the untyped JSZip library returns a Promise<any>,
-        // which TypeScript infers as `unknown`. A type assertion to `Blob` is necessary to
-        // satisfy the `downloadBlob` function's parameter type.
+        // FIX: The `generateAsync` method from the untyped JSZip library can return a Promise<unknown>.
+        // A type assertion to `Blob` is necessary to satisfy the `downloadBlob` function's parameter type.
         const zipBlob = await zip.generateAsync({ type: 'blob' }) as Blob;
         downloadBlob(zipBlob, 'journal_export.zip');
     }
@@ -293,6 +303,11 @@ function App() {
     editingAnecdoteId ? anecdotes.find(a => a.id === editingAnecdoteId) || null : null,
     [editingAnecdoteId, anecdotes]
   );
+  
+  const handleSettingsSave = (newUrl: string, newPositionY: number) => {
+    setBannerUrl(newUrl);
+    setBannerPositionY(newPositionY);
+  };
 
 
   if (currentView === 'converter') {
@@ -321,7 +336,8 @@ function App() {
             isOpen={isSettingsOpen}
             onClose={() => setIsSettingsOpen(false)}
             currentUrl={bannerUrl === DEFAULT_BANNER_URL ? '' : bannerUrl}
-            onSave={setBannerUrl}
+            currentPositionY={bannerPositionY}
+            onSave={handleSettingsSave}
             onSwitchToConverter={switchToConverter}
             onExport={handleExport}
             onImport={handleImport}
@@ -335,7 +351,7 @@ function App() {
             onClose={() => setEditingAnecdoteId(null)}
         />
         
-        <HeaderBanner imageUrl={bannerUrl || DEFAULT_BANNER_URL} />
+        <HeaderBanner imageUrl={bannerUrl || DEFAULT_BANNER_URL} positionY={bannerPositionY} />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 pb-8">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Left Column */}
