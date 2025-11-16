@@ -3,6 +3,8 @@
 
 
 
+
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { SettingsIcon, CloseIcon, SpaIcon, SearchIcon } from './components/icons';
 import { applyTheme } from './services/themeGenerator';
@@ -19,6 +21,7 @@ import { MonthlySummary } from './components/MonthlySummary';
 import { AnecdoteEntry } from './components/AnecdoteEntry';
 import { StatsWidget } from './components/StatsWidget';
 import { EditModal } from './components/EditModal';
+import { WeatherWidget } from './components/WeatherWidget';
 
 
 declare var JSZip: any;
@@ -118,8 +121,7 @@ function App() {
         for (const [date, content] of entries) {
             zip.file(`${date}.md`, content);
         }
-        // FIX: The `generateAsync` method from the untyped JSZip library can return a Promise<unknown>.
-        // A type assertion to `Blob` is necessary to satisfy the `downloadBlob` function's parameter type.
+        // Fix: The untyped JSZip library's `generateAsync` method returns a Promise resolving to a value that needs to be cast to a Blob for use with the `downloadBlob` function.
         const zipBlob = await zip.generateAsync({ type: 'blob' }) as Blob;
         downloadBlob(zipBlob, 'journal_export.zip');
     }
@@ -357,6 +359,7 @@ function App() {
                 {/* Left Column */}
                 <div className="hidden lg:block lg:col-span-1 space-y-8">
                     <Clock />
+                    <WeatherWidget />
                     <Calendar entries={anecdotes} />
                     <StatsWidget totalEntries={anecdotes.length} />
                     <MonthlySummary 

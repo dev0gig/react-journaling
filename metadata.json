@@ -1,5 +1,7 @@
 {
   "name": "Journaling",
   "description": "A beautiful journal to track your daily learnings, readings, and anecdotes, inspired by Notion templates.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [
+    "geolocation"
+  ]
 }

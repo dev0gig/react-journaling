@@ -2,6 +2,9 @@
 
 
 
+
+
+
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 
 interface Props {
@@ -13,21 +16,26 @@ interface State {
 }
 
 class ErrorBoundary extends Component<Props, State> {
-  public state: State = {
+  // Fix: Removed 'public' accessor for consistency, which can resolve type inference issues.
+  state: State = {
     hasError: false,
   };
 
-  public static getDerivedStateFromError(_: Error): State {
+  // Fix: Removed 'public' accessor for consistency.
+  static getDerivedStateFromError(_: Error): State {
     // Update state so the next render will show the fallback UI.
     return { hasError: true };
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  // Fix: Removed 'public' accessor for consistency.
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log the error to the console for debugging.
     console.error("Uncaught error in Markdown Preview:", error, errorInfo);
   }
 
-  public render() {
+  // Fix: Removed the 'public' accessor and added an explicit 'ReactNode' return type
+  // to help resolve a potential type inference issue with 'this.props'.
+  render(): ReactNode {
     if (this.state.hasError) {
       // Render a fallback UI when a rendering error occurs.
       return (
@@ -41,7 +49,6 @@ class ErrorBoundary extends Component<Props, State> {
       );
     }
 
-    // FIX: In a class component, props must be accessed via `this.props`.
     return this.props.children;
   }
 }
