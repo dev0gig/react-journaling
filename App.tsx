@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { SettingsIcon, CloseIcon, SpaIcon, SearchIcon } from './components/icons';
 import { applyTheme } from './services/themeGenerator';
@@ -107,10 +108,11 @@ function App() {
         for (const [date, content] of entries) {
             zip.file(`${date}.md`, content);
         }
-        // FIX: The untyped JSZip library returns a Promise<any>, which can be inferred as `unknown`
-        // in strict TypeScript environments. Explicitly typing the awaited result as a Blob
-        // resolves the "not assignable to BlobPart" error and ensures compatibility with `downloadBlob`.
-        const zipBlob: Blob = await zip.generateAsync({ type: 'blob' });
+        // Fix: Type 'unknown' is not assignable to type 'BlobPart'.
+        // The untyped JSZip library returns a Promise<any>, which can be inferred as `unknown`
+        // in strict TypeScript environments. Using a type assertion `as Blob` ensures compatibility
+        // with `downloadBlob`.
+        const zipBlob = await zip.generateAsync({ type: 'blob' }) as Blob;
         downloadBlob(zipBlob, 'journal_export.zip');
     }
     setIsSettingsOpen(false);
@@ -325,8 +327,8 @@ function App() {
         />
         
         <HeaderBanner imageUrl={bannerUrl || DEFAULT_BANNER_URL} />
-        <main className="mx-auto px-4 sm:px-6 lg:px-12 mt-8 pb-8">
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 pb-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Left Column */}
                 <div className="hidden lg:block lg:col-span-1 space-y-8">
                     <Clock />
@@ -343,7 +345,7 @@ function App() {
                 </div>
 
                 {/* Right Column */}
-                <div className="lg:col-span-3">
+                <div className="lg:col-span-2">
                     {anecdotes.length === 0 ? (
                         <div className="bg-surface-light p-8 rounded-2xl text-center flex flex-col items-center justify-center min-h-[400px]">
                             <div className="mb-6">
