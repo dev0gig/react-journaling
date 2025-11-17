@@ -94,18 +94,22 @@ const renderList = (listLines: string[], highlightTerm?: string, selectionHighli
     const ListTag = firstItemIsOrdered ? 'ol' : 'ul';
     const listStyle = firstItemIsOrdered ? 'list-decimal' : 'list-disc';
 
-    let currentItemContent = '';
+    // FIX: Changed initial value to null to correctly handle empty list items.
+    // An empty string is a valid (empty) list item, but was previously being skipped.
+    let currentItemContent: string | null = null;
     
     const flushItem = () => {
-        if (currentItemContent) {
+        // FIX: Check for null instead of truthiness to allow rendering of empty items.
+        if (currentItemContent !== null) {
             items.push(
                 <li key={`${keyPrefix}-${items.length}`}>
-                    {parseInlineText(currentItemContent, highlightTerm, selectionHighlight)}
+                    {/* FIX: Ensure parseInlineText receives a string, not null */}
+                    {currentItemContent ? parseInlineText(currentItemContent, highlightTerm, selectionHighlight) : null}
                     {sublistLines.length > 0 && renderList(sublistLines, highlightTerm, selectionHighlight, `${keyPrefix}-${items.length}-sub`)}
                 </li>
             );
         }
-        currentItemContent = '';
+        currentItemContent = null;
         sublistLines = [];
     };
 
@@ -288,7 +292,10 @@ const MarkdownRenderer: React.FC<{ markdown: string; highlightTerm?: string; sel
         while (i < lines.length && lines[i].trim() !== '') {
             const currentLine = lines[i];
             // Stop if a new block element is detected
-            if (currentLine.match(/^(#|>|---|___|\*\*\*|\s*[-*+]|\s*\d+\.|\s*<(h[1-6]|hr|blockquote|ul|ol))/)) {
+            // FIX: Made list detection consistent with the list parser to prevent an infinite loop.
+            // The previous regex was too broad and would match list-like characters without the required
+            // trailing space, causing the parser to stall on the same line.
+            if (currentLine.match(/^(#|>|---|___|\*\*\*|\s*([-*+]|\d+\.)\s|\s*<(h[1-6]|hr|blockquote|ul|ol))/)) {
                 break;
             }
             paragraphLines.push(currentLine);
