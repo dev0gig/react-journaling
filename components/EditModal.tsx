@@ -138,7 +138,7 @@ export const EditModal: React.FC<EditModalProps> = ({ anecdote, onSave, onClose 
                         ref={previewRef}
                         className="w-full flex-grow bg-surface-light border border-border rounded-md p-3 overflow-y-auto"
                     >
-                        <ErrorBoundary key={editedText}>
+                        <ErrorBoundary resetKey={editedText}>
                             <MarkdownPreview content={editedText} selectionHighlight={selectedText} />
                         </ErrorBoundary>
                     </div>

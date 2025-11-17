@@ -1,14 +1,8 @@
-
-
-
-
-
-
-
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 
 interface Props {
   children: ReactNode;
+  resetKey?: any;
 }
 
 interface State {
@@ -16,25 +10,26 @@ interface State {
 }
 
 class ErrorBoundary extends Component<Props, State> {
-  // Fix: Removed 'public' accessor for consistency, which can resolve type inference issues.
-  state: State = {
-    hasError: false,
-  };
+  state: State = { hasError: false };
 
-  // Fix: Removed 'public' accessor for consistency.
   static getDerivedStateFromError(_: Error): State {
     // Update state so the next render will show the fallback UI.
     return { hasError: true };
   }
 
-  // Fix: Removed 'public' accessor for consistency.
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log the error to the console for debugging.
-    console.error("Uncaught error in Markdown Preview:", error, errorInfo);
+    console.error("Uncaught error in component:", error, errorInfo);
   }
 
-  // Fix: Removed the 'public' accessor and added an explicit 'ReactNode' return type
-  // to help resolve a potential type inference issue with 'this.props'.
+  componentDidUpdate(prevProps: Props) {
+    if (this.props.resetKey !== prevProps.resetKey) {
+      if (this.state.hasError) {
+        this.setState({ hasError: false });
+      }
+    }
+  }
+
   render(): ReactNode {
     if (this.state.hasError) {
       // Render a fallback UI when a rendering error occurs.

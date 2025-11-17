@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Anecdote } from '../types';
 import { EditIcon } from './icons';
@@ -22,7 +21,7 @@ export const AnecdoteEntry: React.FC<AnecdoteEntryProps> = ({ anecdote, onEdit, 
           <EditIcon className="w-4 h-4" />
         </button>
         <div className="pr-8">
-            <ErrorBoundary key={anecdote.id}>
+            <ErrorBoundary resetKey={anecdote.text}>
                 <MarkdownPreview content={anecdote.text} highlightTerm={searchQuery} />
             </ErrorBoundary>
         </div>

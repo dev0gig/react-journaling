@@ -92,3 +92,22 @@ export const saveAnecdotesBatch = (anecdotes: Anecdote[]): Promise<void> => {
     });
   });
 };
+
+export const deleteAllAnecdotes = (): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    if (!db) {
+      return reject("DB not initialized");
+    }
+    const transaction = db.transaction(STORE_NAME, 'readwrite');
+    const store = transaction.objectStore(STORE_NAME);
+    const request = store.clear();
+
+    request.onerror = () => {
+      reject('Error deleting all anecdotes');
+    };
+
+    request.onsuccess = () => {
+      resolve();
+    };
+  });
+};

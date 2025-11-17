@@ -1,14 +1,8 @@
 
-
-
-
-
-
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { SettingsIcon, CloseIcon, SpaIcon, SearchIcon } from './components/icons';
 import { applyTheme } from './services/themeGenerator';
-import { initDB, getAllAnecdotes, saveAnecdote, saveAnecdotesBatch } from './services/db';
+import { initDB, getAllAnecdotes, saveAnecdote, saveAnecdotesBatch, deleteAllAnecdotes } from './services/db';
 import { Anecdote } from './types';
 import { downloadBlob, formatDateHeading } from './utils/helpers';
 import { themes, DEFAULT_THEME_ID, DEFAULT_BANNER_URL } from './constants';
@@ -90,6 +84,19 @@ function App() {
     setEditingAnecdoteId(null);
   };
 
+  const handleDeleteAllEntries = async () => {
+    if (window.confirm("Sind Sie sicher, dass Sie alle Journaleinträge unwiderruflich löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.")) {
+        try {
+            await deleteAllAnecdotes();
+            setAnecdotes([]);
+            setIsSettingsOpen(false); // Close modal after action
+        } catch (error) {
+            console.error("Failed to delete all entries", error);
+            alert("Fehler beim Löschen der Einträge.");
+        }
+    }
+  };
+
   const switchToConverter = () => {
     setCurrentView('converter');
     setIsSettingsOpen(false);
@@ -121,7 +128,7 @@ function App() {
         for (const [date, content] of entries) {
             zip.file(`${date}.md`, content);
         }
-        // Fix: The untyped JSZip library's `generateAsync` method returns a Promise resolving to a value that needs to be cast to a Blob for use with the `downloadBlob` function.
+        // The untyped JSZip library's `generateAsync` method returns a Promise resolving to a Blob.
         const zipBlob = await zip.generateAsync({ type: 'blob' }) as Blob;
         downloadBlob(zipBlob, 'journal_export.zip');
     }
@@ -345,6 +352,7 @@ function App() {
             onImport={handleImport}
             currentThemeId={themeId}
             onThemeChange={setThemeId}
+            onDeleteAll={handleDeleteAllEntries}
         />
 
         <EditModal 

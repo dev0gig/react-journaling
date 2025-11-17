@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { themes, DEFAULT_BANNER_URL } from '../constants';
-import { CloseIcon, UploadIcon, DownloadIcon, BowIcon } from './icons';
+import { CloseIcon, UploadIcon, DownloadIcon, BowIcon, DeleteIcon } from './icons';
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -14,9 +13,10 @@ interface SettingsModalProps {
     onImport: (event: React.ChangeEvent<HTMLInputElement>) => void;
     currentThemeId: string;
     onThemeChange: (themeId: string) => void;
+    onDeleteAll: () => void;
 }
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, currentUrl, currentPositionY, onSave, onSwitchToConverter, onExport, onImport, currentThemeId, onThemeChange }) => {
+export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, currentUrl, currentPositionY, onSave, onSwitchToConverter, onExport, onImport, currentThemeId, onThemeChange, onDeleteAll }) => {
     const [url, setUrl] = useState(currentUrl);
     const [positionY, setPositionY] = useState(currentPositionY);
 
@@ -61,7 +61,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, c
             aria-labelledby="settings-title"
         >
             <div 
-                className="bg-surface border border-border rounded-xl shadow-2xl w-full max-w-md p-6 m-4"
+                className="bg-surface border border-border rounded-xl shadow-2xl w-full max-w-md p-6 m-4 overflow-y-auto max-h-[90vh]"
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="flex justify-between items-center mb-4">
@@ -184,6 +184,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, c
                             <span className="text-primary text-sm font-normal">Moleskine Konverter</span>
                         </button>
                     </div>
+                </div>
+                
+                <div className="mt-8 pt-6 border-t border-border">
+                    <h3 className="text-sm font-bold text-red-400 mb-3">
+                        Gefahrenzone
+                    </h3>
+                    <button 
+                        onClick={onDeleteAll}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-red-200 bg-red-900/40 border border-red-500/50 rounded-md transition-colors duration-200 hover:bg-red-900/60"
+                    >
+                        <DeleteIcon className="w-5 h-5" />
+                        <span>Alle Einträge löschen</span>
+                    </button>
+                    <p className="text-xs text-secondary text-center mt-2">
+                        Diese Aktion ist endgültig und kann nicht rückgängig gemacht werden.
+                    </p>
                 </div>
             </div>
         </div>
