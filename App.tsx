@@ -1,6 +1,7 @@
 
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { SettingsIcon, CloseIcon, SpaIcon, SearchIcon } from './components/icons';
+import { SettingsIcon, CloseIcon, SpaIcon, SearchIcon, AddCircleIcon } from './components/icons';
 import { applyTheme } from './services/themeGenerator';
 import { initDB, getAllAnecdotes, saveAnecdote, saveAnecdotesBatch, deleteAllAnecdotes } from './services/db';
 import { Anecdote } from './types';
@@ -35,7 +36,7 @@ function App() {
     return localStorage.getItem('journalThemeId') || DEFAULT_THEME_ID;
   });
   const [anecdotes, setAnecdotes] = useState<Anecdote[]>([]);
-  const [editingAnecdoteId, setEditingAnecdoteId] = useState<string | null>(null);
+  const [entryModalState, setEntryModalState] = useState<{ mode: 'create' | 'edit'; anecdote?: Anecdote } | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -72,17 +73,69 @@ function App() {
     }
   }, [themeId]);
   
-  const addEntriesToJournal = async (newEntries: Anecdote[]) => {
-    await saveAnecdotesBatch(newEntries);
-    setAnecdotes(prev => [...prev, ...newEntries]);
-    setCurrentView('journal');
-  };
+  const mergeAndSaveEntries = useCallback(async (newEntries: Anecdote[]) => {
+    const currentAnecdotes = await getAllAnecdotes();
+    const anecdotesToUpdate: Anecdote[] = [];
+    const anecdotesToAdd: Anecdote[] = [];
+    const existingAnecdotesByDate = new Map<string, Anecdote>();
 
-  const handleSaveAnecdote = async (updatedAnecdote: Anecdote) => {
-    await saveAnecdote(updatedAnecdote);
-    setAnecdotes(prev => prev.map(a => a.id === updatedAnecdote.id ? updatedAnecdote : a));
-    setEditingAnecdoteId(null);
-  };
+    // Find the first existing entry for each date
+    for (const anecdote of currentAnecdotes) {
+        if (!existingAnecdotesByDate.has(anecdote.date)) {
+            existingAnecdotesByDate.set(anecdote.date, anecdote);
+        }
+    }
+    
+    // Group new entries by date to merge them if import contains multiple for same day
+    const groupedNewEntriesByDate = newEntries.reduce((acc, entry) => {
+        const separator = acc[entry.date] ? '\n\n---\n\n' : '';
+        acc[entry.date] = (acc[entry.date] || '') + separator + entry.text;
+        return acc;
+    }, {} as Record<string, string>);
+
+    for (const date in groupedNewEntriesByDate) {
+        const newText = groupedNewEntriesByDate[date];
+        const existingAnecdote = existingAnecdotesByDate.get(date);
+
+        if (existingAnecdote) {
+            const updatedAnecdote: Anecdote = {
+                ...existingAnecdote,
+                text: existingAnecdote.text + '\n\n---\n\n' + newText
+            };
+            anecdotesToUpdate.push(updatedAnecdote);
+        } else {
+            anecdotesToAdd.push({
+                id: `entry-${date}-${Date.now()}-${Math.random()}`,
+                date: date,
+                text: newText,
+            });
+        }
+    }
+
+    const allToSave = [...anecdotesToUpdate, ...anecdotesToAdd];
+
+    if (allToSave.length > 0) {
+        await saveAnecdotesBatch(allToSave);
+        const allAnecdotesFromDb = await getAllAnecdotes();
+        setAnecdotes(allAnecdotesFromDb);
+    }
+  }, []);
+
+  const addEntriesToJournal = useCallback(async (newEntries: Anecdote[]) => {
+    await mergeAndSaveEntries(newEntries);
+    setCurrentView('journal');
+  }, [mergeAndSaveEntries]);
+
+  const handleSaveEntry = useCallback(async (entry: Anecdote) => {
+    if (entryModalState?.mode === 'create') {
+        await mergeAndSaveEntries([entry]);
+    } else { // 'edit' mode
+        await saveAnecdote(entry);
+        const allAnecdotesFromDb = await getAllAnecdotes();
+        setAnecdotes(allAnecdotesFromDb);
+    }
+    setEntryModalState(null);
+  }, [entryModalState, mergeAndSaveEntries]);
 
   const handleDeleteAllEntries = async () => {
     if (window.confirm("Sind Sie sicher, dass Sie alle Journaleinträge unwiderruflich löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.")) {
@@ -121,7 +174,8 @@ function App() {
 
     if (entries.length === 1) {
         const [date, content] = entries[0];
-        const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+        // FIX: Explicitly cast content to string to prevent type errors where it might be inferred as 'unknown'.
+        const blob = new Blob([String(content)], { type: 'text/markdown;charset=utf-8' });
         downloadBlob(blob, `${date}.md`);
     } else {
         const zip = new JSZip();
@@ -174,13 +228,12 @@ function App() {
     }
     
     if (newAnecdotes.length > 0) {
-        await saveAnecdotesBatch(newAnecdotes);
-        setAnecdotes(prev => [...prev, ...newAnecdotes]);
+        await mergeAndSaveEntries(newAnecdotes);
     }
 
     event.target.value = ''; // Reset input
     setIsSettingsOpen(false);
-  }, []);
+  }, [mergeAndSaveEntries]);
 
   const sortedAnecdotes = useMemo(() => 
     [...anecdotes].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
@@ -308,11 +361,6 @@ function App() {
       setSearchQuery('');
   };
 
-  const anecdoteToEdit = useMemo(() => 
-    editingAnecdoteId ? anecdotes.find(a => a.id === editingAnecdoteId) || null : null,
-    [editingAnecdoteId, anecdotes]
-  );
-  
   const handleSettingsSave = (newUrl: string, newPositionY: number) => {
     setBannerUrl(newUrl);
     setBannerPositionY(newPositionY);
@@ -356,9 +404,11 @@ function App() {
         />
 
         <EditModal 
-            anecdote={anecdoteToEdit}
-            onSave={handleSaveAnecdote}
-            onClose={() => setEditingAnecdoteId(null)}
+            isOpen={!!entryModalState}
+            mode={entryModalState?.mode || 'create'}
+            anecdoteToEdit={entryModalState?.anecdote}
+            onSave={handleSaveEntry}
+            onClose={() => setEntryModalState(null)}
         />
         
         <HeaderBanner imageUrl={bannerUrl || DEFAULT_BANNER_URL} positionY={bannerPositionY} />
@@ -388,15 +438,24 @@ function App() {
                                 <SpaIcon className="w-16 h-16 text-accent" />
                             </div>
                             <p className="text-secondary mt-2 max-w-md">
-                                Es scheint, als gäbe es noch keine Einträge. Du kannst deine Moleskine-Notizen oder andere Markdown-Dateien über die Einstellungen importieren.
+                                Es scheint, als gäbe es noch keine Einträge. Erstelle deinen ersten Eintrag oder importiere deine Notizen über die Einstellungen.
                             </p>
-                            <button
-                                onClick={() => setIsSettingsOpen(true)}
-                                className="mt-6 flex items-center gap-2 px-4 py-2 text-sm font-semibold text-background bg-accent rounded-md transition-colors duration-200 hover:opacity-90"
-                            >
-                                <SettingsIcon className="w-5 h-5" />
-                                <span>Importieren & Konfigurieren</span>
-                            </button>
+                            <div className="flex items-center justify-center gap-4 mt-6">
+                                <button
+                                    onClick={() => setEntryModalState({ mode: 'create' })}
+                                    className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-background bg-accent rounded-md transition-colors duration-200 hover:opacity-90"
+                                >
+                                    <AddCircleIcon className="w-5 h-5" />
+                                    <span>Ersten Eintrag erstellen</span>
+                                </button>
+                                <button
+                                    onClick={() => setIsSettingsOpen(true)}
+                                    className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-primary bg-surface rounded-md transition-colors duration-200 hover:bg-border"
+                                >
+                                    <SettingsIcon className="w-5 h-5" />
+                                    <span>Importieren & Konfigurieren</span>
+                                </button>
+                            </div>
                         </div>
                     ) : (
                         <div>
@@ -427,26 +486,38 @@ function App() {
                                 <h2 className="text-2xl font-bold text-primary">
                                     {searchQuery ? `Suchergebnisse` : (selectedMonth ? formatMonthHeader(selectedMonth) : 'Einträge')}
                                 </h2>
-                                {!searchQuery && availableMonthsInYear.length > 1 && (
-                                    <div className="flex gap-2">
+                                <div className="flex items-center gap-2">
+                                    {!searchQuery && (
                                         <button
-                                            onClick={handlePrevMonth}
-                                            disabled={selectedMonth ? availableMonthsInYear.indexOf(selectedMonth) === availableMonthsInYear.length - 1 : true}
-                                            className="p-2 rounded-md bg-surface-light hover:bg-border disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                            aria-label="Vorheriger Monat"
+                                            onClick={() => setEntryModalState({ mode: 'create' })}
+                                            className="h-9 flex items-center gap-2 px-3 text-sm font-semibold text-primary bg-surface-light rounded-md transition-colors duration-200 hover:bg-border"
+                                            aria-label="Neuer Eintrag"
                                         >
-                                            <span className="material-symbols-outlined text-secondary hover:text-primary">chevron_left</span>
+                                            <AddCircleIcon className="w-5 h-5" />
+                                            <span>Neuer Eintrag</span>
                                         </button>
-                                        <button
-                                            onClick={handleNextMonth}
-                                            disabled={selectedMonth ? availableMonthsInYear.indexOf(selectedMonth) === 0 : true}
-                                            className="p-2 rounded-md bg-surface-light hover:bg-border disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                            aria-label="Nächster Monat"
-                                        >
-                                            <span className="material-symbols-outlined text-secondary hover:text-primary">chevron_right</span>
-                                        </button>
-                                    </div>
-                                )}
+                                    )}
+                                    {!searchQuery && availableMonthsInYear.length > 1 && (
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={handlePrevMonth}
+                                                disabled={selectedMonth ? availableMonthsInYear.indexOf(selectedMonth) === availableMonthsInYear.length - 1 : true}
+                                                className="h-9 w-9 flex items-center justify-center rounded-md bg-surface-light hover:bg-border disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                                aria-label="Vorheriger Monat"
+                                            >
+                                                <span className="material-symbols-outlined text-secondary hover:text-primary">chevron_left</span>
+                                            </button>
+                                            <button
+                                                onClick={handleNextMonth}
+                                                disabled={selectedMonth ? availableMonthsInYear.indexOf(selectedMonth) === 0 : true}
+                                                className="h-9 w-9 flex items-center justify-center rounded-md bg-surface-light hover:bg-border disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                                aria-label="Nächster Monat"
+                                            >
+                                                <span className="material-symbols-outlined text-secondary hover:text-primary">chevron_right</span>
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                             
                             {Object.keys(groupedAnecdotes).length > 0 ? (
@@ -461,7 +532,7 @@ function App() {
                                                     <AnecdoteEntry
                                                         key={anecdote.id}
                                                         anecdote={anecdote}
-                                                        onEdit={setEditingAnecdoteId}
+                                                        onEdit={(anecdoteToEdit) => setEntryModalState({ mode: 'edit', anecdote: anecdoteToEdit })}
                                                         searchQuery={searchQuery}
                                                     />
                                                 ))}

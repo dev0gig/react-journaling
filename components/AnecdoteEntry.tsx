@@ -6,7 +6,7 @@ import ErrorBoundary from './ErrorBoundary';
 
 interface AnecdoteEntryProps {
     anecdote: Anecdote;
-    onEdit: (id: string) => void;
+    onEdit: (anecdote: Anecdote) => void;
     searchQuery?: string;
 }
 
@@ -14,7 +14,7 @@ export const AnecdoteEntry: React.FC<AnecdoteEntryProps> = ({ anecdote, onEdit, 
     return (
       <article className="bg-surface-light p-4 rounded-xl shadow-md relative">
         <button
-          onClick={() => onEdit(anecdote.id)}
+          onClick={() => onEdit(anecdote)}
           className="absolute top-3 right-3 p-1.5 rounded-full text-secondary transition-colors hover:text-primary"
           aria-label="Eintrag bearbeiten"
         >

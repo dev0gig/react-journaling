@@ -7,24 +7,41 @@ import { CloseIcon } from './icons';
 import { formatDateHeading } from '../utils/helpers';
 
 interface EditModalProps {
-    anecdote: Anecdote | null;
+    isOpen: boolean;
+    mode: 'create' | 'edit';
+    anecdoteToEdit?: Anecdote | null;
     onSave: (anecdote: Anecdote) => void;
     onClose: () => void;
 }
 
-export const EditModal: React.FC<EditModalProps> = ({ anecdote, onSave, onClose }) => {
-    const [editedText, setEditedText] = useState('');
+const getTodayDateString = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+export const EditModal: React.FC<EditModalProps> = ({ isOpen, mode, anecdoteToEdit, onSave, onClose }) => {
+    const [text, setText] = useState('');
+    const [date, setDate] = useState(getTodayDateString());
     const [selectedText, setSelectedText] = useState('');
 
     const editorRef = useRef<HTMLTextAreaElement>(null);
     const previewRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        if (anecdote) {
-            setEditedText(anecdote.text);
+        if (isOpen) {
+            if (mode === 'edit' && anecdoteToEdit) {
+                setText(anecdoteToEdit.text);
+                setDate(anecdoteToEdit.date);
+            } else {
+                setText('');
+                setDate(getTodayDateString());
+            }
+            setSelectedText('');
         }
-        setSelectedText('');
-    }, [anecdote]);
+    }, [isOpen, mode, anecdoteToEdit]);
 
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
@@ -32,13 +49,13 @@ export const EditModal: React.FC<EditModalProps> = ({ anecdote, onSave, onClose 
                 onClose();
             }
         };
-        if (anecdote) {
+        if (isOpen) {
             window.addEventListener('keydown', handleKeyDown);
         }
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
         };
-    }, [anecdote, onClose]);
+    }, [isOpen, onClose]);
 
     // Effect for synchronized scrolling
     useEffect(() => {
@@ -77,16 +94,29 @@ export const EditModal: React.FC<EditModalProps> = ({ anecdote, onSave, onClose 
             editor.removeEventListener('scroll', handleEditorScroll);
             preview.removeEventListener('scroll', handlePreviewScroll);
         };
-    }, [anecdote]);
+    }, [isOpen]);
 
 
-    if (!anecdote) return null;
+    if (!isOpen) return null;
 
     const handleSaveClick = () => {
-        onSave({
-            ...anecdote,
-            text: editedText,
-        });
+        if (!text.trim()) {
+            alert('Der Eintrag darf nicht leer sein.');
+            return;
+        }
+        
+        if (mode === 'create') {
+            onSave({
+                id: `entry-${Date.now()}-${Math.random()}`,
+                date: date,
+                text: text,
+            });
+        } else if (anecdoteToEdit) {
+            onSave({
+                ...anecdoteToEdit,
+                text: text,
+            });
+        }
     };
     
     const handleSelect = (e: React.SyntheticEvent<HTMLTextAreaElement>) => {
@@ -94,6 +124,8 @@ export const EditModal: React.FC<EditModalProps> = ({ anecdote, onSave, onClose 
         const selection = target.value.substring(target.selectionStart, target.selectionEnd);
         setSelectedText(selection);
     };
+
+    const title = mode === 'create' ? 'Neuer Eintrag' : 'Eintrag bearbeiten';
 
     return (
         <div 
@@ -104,9 +136,21 @@ export const EditModal: React.FC<EditModalProps> = ({ anecdote, onSave, onClose 
         >
             {/* Header */}
             <header className="flex justify-between items-center p-4 border-b border-border flex-shrink-0">
-                <h2 id="edit-modal-title" className="text-lg font-bold text-primary">
-                    Eintrag bearbeiten - <span className="text-secondary font-normal">{formatDateHeading(anecdote.date)}</span>
-                </h2>
+                <div className="flex items-center gap-4">
+                    <h2 id="edit-modal-title" className="text-lg font-bold text-primary">
+                        {title}
+                    </h2>
+                     {mode === 'create' ? (
+                        <input
+                            type="date"
+                            value={date}
+                            onChange={(e) => setDate(e.target.value)}
+                            className="bg-surface-light border border-border rounded-md px-2 py-1 text-primary focus:outline-none focus:ring-2 focus:ring-accent"
+                        />
+                    ) : (
+                        <span className="text-secondary font-normal">{formatDateHeading(date)}</span>
+                    )}
+                </div>
                 <button onClick={onClose} className="text-secondary hover:text-primary transition-colors" aria-label="Editor schließen">
                     <CloseIcon className="w-6 h-6" />
                 </button>
@@ -116,17 +160,18 @@ export const EditModal: React.FC<EditModalProps> = ({ anecdote, onSave, onClose 
             <main className="flex-grow p-4 grid grid-cols-1 md:grid-cols-2 gap-4 overflow-hidden">
                 {/* Editor Pane */}
                 <div className="flex flex-col h-full">
-                    <label htmlFor={`modal-editor-${anecdote.id}`} className="block text-sm font-medium text-secondary mb-2">
+                    <label htmlFor="modal-editor" className="block text-sm font-medium text-secondary mb-2">
                         Editor
                     </label>
                     <textarea
-                        id={`modal-editor-${anecdote.id}`}
+                        id="modal-editor"
                         ref={editorRef}
-                        value={editedText}
-                        onChange={(e) => setEditedText(e.target.value)}
+                        value={text}
+                        onChange={(e) => setText(e.target.value)}
                         onSelect={handleSelect}
                         className="w-full flex-grow bg-surface-light border border-border rounded-md px-3 py-2 text-secondary placeholder-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent resize-none font-mono"
                         aria-label="Text bearbeiten"
+                        placeholder="Beginne zu schreiben..."
                     />
                 </div>
                 {/* Preview Pane */}
@@ -138,8 +183,8 @@ export const EditModal: React.FC<EditModalProps> = ({ anecdote, onSave, onClose 
                         ref={previewRef}
                         className="w-full flex-grow bg-surface-light border border-border rounded-md p-3 overflow-y-auto"
                     >
-                        <ErrorBoundary resetKey={editedText}>
-                            <MarkdownPreview content={editedText} selectionHighlight={selectedText} />
+                        <ErrorBoundary resetKey={text}>
+                            <MarkdownPreview content={text} selectionHighlight={selectedText} />
                         </ErrorBoundary>
                     </div>
                 </div>
