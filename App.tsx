@@ -1,7 +1,5 @@
-
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { SettingsIcon, CloseIcon, SpaIcon, SearchIcon, AddCircleIcon } from './components/icons';
+import { SettingsIcon, CloseIcon, SpaIcon, SearchIcon, AddCircleIcon, ChecklistIcon } from './components/icons';
 import { applyTheme } from './services/themeGenerator';
 import { initDB, getAllAnecdotes, saveAnecdote, saveAnecdotesBatch, deleteAllAnecdotes } from './services/db';
 import { Anecdote } from './types';
@@ -17,6 +15,7 @@ import { AnecdoteEntry } from './components/AnecdoteEntry';
 import { StatsWidget } from './components/StatsWidget';
 import { EditModal } from './components/EditModal';
 import { WeatherWidget } from './components/WeatherWidget';
+import { TodoView } from './components/TodoView';
 
 
 declare var JSZip: any;
@@ -24,7 +23,7 @@ declare var JSZip: any;
 
 // --- MAIN APP ---
 function App() {
-  const [currentView, setCurrentView] = useState('journal');
+  const [currentView, setCurrentView] = useState('journal'); // 'journal', 'converter', 'todos'
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [bannerUrl, setBannerUrl] = useState(() => {
     return localStorage.getItem('journalBannerUrl') || DEFAULT_BANNER_URL;
@@ -136,6 +135,20 @@ function App() {
     }
     setEntryModalState(null);
   }, [entryModalState, mergeAndSaveEntries]);
+
+  // Handler for direct updates (like checkbox toggling) that don't use the modal
+  const handleUpdateEntry = useCallback(async (updatedAnecdote: Anecdote) => {
+    // Optimistic UI update
+    setAnecdotes(prev => prev.map(a => a.id === updatedAnecdote.id ? updatedAnecdote : a));
+    
+    try {
+        await saveAnecdote(updatedAnecdote);
+        // Optionally refresh from DB to be sure, but optimistic is usually fine for simple toggles
+    } catch (error) {
+        console.error("Failed to update entry", error);
+        // Revert on failure? For now, just log.
+    }
+  }, []);
 
   const handleDeleteAllEntries = async () => {
     if (window.confirm("Sind Sie sicher, dass Sie alle Journaleinträge unwiderruflich löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.")) {
@@ -304,6 +317,15 @@ function App() {
     return availableMonths.filter(m => m.startsWith(String(selectedYear)));
   }, [selectedYear, availableMonths]);
 
+  const openTodoCount = useMemo(() => {
+    let count = 0;
+    anecdotes.forEach(a => {
+        const matches = a.text.match(/(?:^|\n)\s*(?:(?:-\s+)|(?:\d+\.\s+))*(?:TODO|\[ \])/gi);
+        if (matches) count += matches.length;
+    });
+    return count;
+  }, [anecdotes]);
+
   const handlePrevMonth = () => {
     if (!selectedMonth) return;
     const currentIndex = availableMonthsInYear.indexOf(selectedMonth);
@@ -354,6 +376,7 @@ function App() {
   const handleMonthSelect = (monthKey: string) => {
     setSelectedMonth(monthKey);
     setSearchQuery('');
+    setCurrentView('journal');
   };
 
   const handleYearChange = (year: number) => {
@@ -417,6 +440,26 @@ function App() {
                 {/* Left Column */}
                 <div className="hidden lg:block lg:col-span-1 space-y-8">
                     <Clock />
+                    <div className="bg-surface-light p-6 rounded-2xl shadow-lg transition-transform hover:scale-[1.02]">
+                         <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                                <ChecklistIcon className="w-8 h-8 text-accent-peach" />
+                                <h2 className="font-bold text-primary text-xl">Aufgaben</h2>
+                            </div>
+                            <span className="bg-surface text-primary text-xs font-bold px-2 py-1 rounded-full">
+                                {openTodoCount}
+                            </span>
+                         </div>
+                         <p className="text-secondary text-sm mb-4">
+                            Verwalten Sie alle Ihre offenen Aufgaben an einem Ort.
+                         </p>
+                         <button
+                            onClick={() => setCurrentView('todos')}
+                            className="w-full py-2 px-4 bg-surface hover:bg-border text-primary text-sm font-semibold rounded-lg transition-colors"
+                         >
+                            Meine Aufgaben ansehen
+                         </button>
+                    </div>
                     <WeatherWidget />
                     <Calendar entries={anecdotes} />
                     <StatsWidget totalEntries={anecdotes.length} />
@@ -432,124 +475,144 @@ function App() {
 
                 {/* Right Column */}
                 <div className="lg:col-span-2">
-                    {anecdotes.length === 0 ? (
-                        <div className="bg-surface-light p-8 rounded-2xl text-center flex flex-col items-center justify-center min-h-[400px]">
-                            <div className="mb-6">
-                                <SpaIcon className="w-16 h-16 text-accent" />
-                            </div>
-                            <p className="text-secondary mt-2 max-w-md">
-                                Es scheint, als gäbe es noch keine Einträge. Erstelle deinen ersten Eintrag oder importiere deine Notizen über die Einstellungen.
-                            </p>
-                            <div className="flex items-center justify-center gap-4 mt-6">
-                                <button
-                                    onClick={() => setEntryModalState({ mode: 'create' })}
-                                    className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-background bg-accent rounded-md transition-colors duration-200 hover:opacity-90"
-                                >
-                                    <AddCircleIcon className="w-5 h-5" />
-                                    <span>Ersten Eintrag erstellen</span>
-                                </button>
-                                <button
-                                    onClick={() => setIsSettingsOpen(true)}
-                                    className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-primary bg-surface rounded-md transition-colors duration-200 hover:bg-border"
-                                >
-                                    <SettingsIcon className="w-5 h-5" />
-                                    <span>Importieren & Konfigurieren</span>
-                                </button>
-                            </div>
-                        </div>
+                    {currentView === 'todos' ? (
+                        <TodoView 
+                            anecdotes={anecdotes} 
+                            onUpdate={handleUpdateEntry} 
+                            onBack={() => setCurrentView('journal')} 
+                        />
                     ) : (
-                        <div>
-                            <div className="relative mb-6">
-                                <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-secondary">
-                                    <SearchIcon className="w-5 h-5" />
-                                </span>
-                                <input
-                                    type="text"
-                                    placeholder="Einträge durchsuchen..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full pl-11 pr-10 py-3 bg-surface-light border border-transparent rounded-lg text-primary focus:outline-none focus:ring-2 focus:ring-accent"
-                                    aria-label="Einträge durchsuchen"
-                                />
-                                {searchQuery && (
-                                    <button
-                                        onClick={() => setSearchQuery('')}
-                                        className="absolute inset-y-0 right-0 flex items-center pr-4 text-secondary hover:text-primary transition-colors"
-                                        aria-label="Suche löschen"
-                                    >
-                                        <CloseIcon className="w-5 h-5" />
-                                    </button>
-                                )}
-                            </div>
-
-                            <div className="flex justify-between items-center mb-6">
-                                <h2 className="text-2xl font-bold text-primary">
-                                    {searchQuery ? `Suchergebnisse` : (selectedMonth ? formatMonthHeader(selectedMonth) : 'Einträge')}
-                                </h2>
-                                <div className="flex items-center gap-2">
-                                    {!searchQuery && (
+                        <>
+                            {anecdotes.length === 0 ? (
+                                <div className="bg-surface-light p-8 rounded-2xl text-center flex flex-col items-center justify-center min-h-[400px]">
+                                    <div className="mb-6">
+                                        <SpaIcon className="w-16 h-16 text-accent" />
+                                    </div>
+                                    <p className="text-secondary mt-2 max-w-md">
+                                        Es scheint, als gäbe es noch keine Einträge. Erstelle deinen ersten Eintrag oder importiere deine Notizen über die Einstellungen.
+                                    </p>
+                                    <div className="flex items-center justify-center gap-4 mt-6">
                                         <button
                                             onClick={() => setEntryModalState({ mode: 'create' })}
-                                            className="h-9 flex items-center gap-2 px-3 text-sm font-semibold text-primary bg-surface-light rounded-md transition-colors duration-200 hover:bg-border"
-                                            aria-label="Neuer Eintrag"
+                                            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-background bg-accent rounded-md transition-colors duration-200 hover:opacity-90"
                                         >
                                             <AddCircleIcon className="w-5 h-5" />
-                                            <span>Neuer Eintrag</span>
+                                            <span>Ersten Eintrag erstellen</span>
                                         </button>
-                                    )}
-                                    {!searchQuery && availableMonthsInYear.length > 1 && (
-                                        <div className="flex gap-2">
-                                            <button
-                                                onClick={handlePrevMonth}
-                                                disabled={selectedMonth ? availableMonthsInYear.indexOf(selectedMonth) === availableMonthsInYear.length - 1 : true}
-                                                className="h-9 w-9 flex items-center justify-center rounded-md bg-surface-light hover:bg-border disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                                aria-label="Vorheriger Monat"
-                                            >
-                                                <span className="material-symbols-outlined text-secondary hover:text-primary">chevron_left</span>
-                                            </button>
-                                            <button
-                                                onClick={handleNextMonth}
-                                                disabled={selectedMonth ? availableMonthsInYear.indexOf(selectedMonth) === 0 : true}
-                                                className="h-9 w-9 flex items-center justify-center rounded-md bg-surface-light hover:bg-border disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                                aria-label="Nächster Monat"
-                                            >
-                                                <span className="material-symbols-outlined text-secondary hover:text-primary">chevron_right</span>
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                            
-                            {Object.keys(groupedAnecdotes).length > 0 ? (
-                                <div className="space-y-8">
-                                    {Object.keys(groupedAnecdotes).map((date) => (
-                                        <div key={date}>
-                                            <h2 className="text-xl font-bold text-primary mb-4 pb-2 border-b-2 border-border">
-                                                {formatDateHeading(date)}
-                                            </h2>
-                                            <div className="space-y-4">
-                                                {groupedAnecdotes[date].map((anecdote) => (
-                                                    <AnecdoteEntry
-                                                        key={anecdote.id}
-                                                        anecdote={anecdote}
-                                                        onEdit={(anecdoteToEdit) => setEntryModalState({ mode: 'edit', anecdote: anecdoteToEdit })}
-                                                        searchQuery={searchQuery}
-                                                    />
-                                                ))}
-                                            </div>
-                                        </div>
-                                    ))}
+                                        <button
+                                            onClick={() => setIsSettingsOpen(true)}
+                                            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-primary bg-surface rounded-md transition-colors duration-200 hover:bg-border"
+                                        >
+                                            <SettingsIcon className="w-5 h-5" />
+                                            <span>Importieren & Konfigurieren</span>
+                                        </button>
+                                    </div>
                                 </div>
                             ) : (
-                                <div className="bg-surface-light p-8 rounded-2xl text-center flex flex-col items-center justify-center min-h-[300px]">
-                                    <SearchIcon className="w-12 h-12 text-secondary mb-4" />
-                                    <p className="text-primary font-semibold">Keine Ergebnisse gefunden</p>
-                                    <p className="text-secondary mt-1 max-w-md">
-                                        {searchQuery ? `Für "${searchQuery}" wurden keine Einträge gefunden.` : 'Für diesen Monat gibt es keine Einträge.'}
-                                    </p>
+                                <div>
+                                    <div className="relative mb-6">
+                                        <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-secondary">
+                                            <SearchIcon className="w-5 h-5" />
+                                        </span>
+                                        <input
+                                            type="text"
+                                            placeholder="Einträge durchsuchen..."
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            className="w-full pl-11 pr-10 py-3 bg-surface-light border border-transparent rounded-lg text-primary focus:outline-none focus:ring-2 focus:ring-accent"
+                                            aria-label="Einträge durchsuchen"
+                                        />
+                                        {searchQuery && (
+                                            <button
+                                                onClick={() => setSearchQuery('')}
+                                                className="absolute inset-y-0 right-0 flex items-center pr-4 text-secondary hover:text-primary transition-colors"
+                                                aria-label="Suche löschen"
+                                            >
+                                                <CloseIcon className="w-5 h-5" />
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h2 className="text-2xl font-bold text-primary">
+                                            {searchQuery ? `Suchergebnisse` : (selectedMonth ? formatMonthHeader(selectedMonth) : 'Einträge')}
+                                        </h2>
+                                        <div className="flex items-center gap-2">
+                                            {/* Mobile Task Button */}
+                                            <button
+                                                onClick={() => setCurrentView('todos')}
+                                                className="lg:hidden h-9 w-9 flex items-center justify-center rounded-md bg-surface-light hover:bg-border text-accent-peach transition-colors"
+                                                aria-label="Aufgaben ansehen"
+                                            >
+                                                <ChecklistIcon className="w-5 h-5" />
+                                            </button>
+
+                                            {!searchQuery && (
+                                                <button
+                                                    onClick={() => setEntryModalState({ mode: 'create' })}
+                                                    className="h-9 flex items-center gap-2 px-3 text-sm font-semibold text-primary bg-surface-light rounded-md transition-colors duration-200 hover:bg-border"
+                                                    aria-label="Neuer Eintrag"
+                                                >
+                                                    <AddCircleIcon className="w-5 h-5" />
+                                                    <span>Neuer Eintrag</span>
+                                                </button>
+                                            )}
+                                            {!searchQuery && availableMonthsInYear.length > 1 && (
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={handlePrevMonth}
+                                                        disabled={selectedMonth ? availableMonthsInYear.indexOf(selectedMonth) === availableMonthsInYear.length - 1 : true}
+                                                        className="h-9 w-9 flex items-center justify-center rounded-md bg-surface-light hover:bg-border disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                                        aria-label="Vorheriger Monat"
+                                                    >
+                                                        <span className="material-symbols-outlined text-secondary hover:text-primary">chevron_left</span>
+                                                    </button>
+                                                    <button
+                                                        onClick={handleNextMonth}
+                                                        disabled={selectedMonth ? availableMonthsInYear.indexOf(selectedMonth) === 0 : true}
+                                                        className="h-9 w-9 flex items-center justify-center rounded-md bg-surface-light hover:bg-border disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                                        aria-label="Nächster Monat"
+                                                    >
+                                                        <span className="material-symbols-outlined text-secondary hover:text-primary">chevron_right</span>
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                    
+                                    {Object.keys(groupedAnecdotes).length > 0 ? (
+                                        <div className="space-y-8">
+                                            {Object.keys(groupedAnecdotes).map((date) => (
+                                                <div key={date}>
+                                                    <h2 className="text-xl font-bold text-primary mb-4 pb-2 border-b-2 border-border">
+                                                        {formatDateHeading(date)}
+                                                    </h2>
+                                                    <div className="space-y-4">
+                                                        {groupedAnecdotes[date].map((anecdote) => (
+                                                            <AnecdoteEntry
+                                                                key={anecdote.id}
+                                                                anecdote={anecdote}
+                                                                onEdit={(anecdoteToEdit) => setEntryModalState({ mode: 'edit', anecdote: anecdoteToEdit })}
+                                                                onUpdate={handleUpdateEntry}
+                                                                searchQuery={searchQuery}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="bg-surface-light p-8 rounded-2xl text-center flex flex-col items-center justify-center min-h-[300px]">
+                                            <SearchIcon className="w-12 h-12 text-secondary mb-4" />
+                                            <p className="text-primary font-semibold">Keine Ergebnisse gefunden</p>
+                                            <p className="text-secondary mt-1 max-w-md">
+                                                {searchQuery ? `Für "${searchQuery}" wurden keine Einträge gefunden.` : 'Für diesen Monat gibt es keine Einträge.'}
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             )}
-                        </div>
+                        </>
                     )}
                 </div>
             </div>

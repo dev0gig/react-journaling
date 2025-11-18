@@ -22,3 +22,4 @@ export const SearchIcon: React.FC<{ className?: string }> = ({ className }) => <
 export const LocationIcon: React.FC<{ className?: string }> = ({ className }) => <Icon iconName="location_on" className={className} />;
 export const LocationOffIcon: React.FC<{ className?: string }> = ({ className }) => <Icon iconName="location_off" className={className} />;
 export const DeleteIcon: React.FC<{ className?: string }> = ({ className }) => <Icon iconName="delete" className={className} />;
+export const ChecklistIcon: React.FC<{ className?: string }> = ({ className }) => <Icon iconName="checklist" className={className} />;

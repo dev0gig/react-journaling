@@ -1,8 +1,7 @@
-// FIX: Changed to a namespace import and updated related types to resolve type inference issues with React class components. This fixes errors where `this.props` and `this.setState` were not found.
-import * as React from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 
 interface Props {
-  children: React.ReactNode;
+  children: ReactNode;
   resetKey?: any;
 }
 
@@ -10,22 +9,24 @@ interface State {
   hasError: boolean;
 }
 
-// FIX: The named import for `Component` caused type inference issues. Switched to
-// extending `React.Component` directly to ensure correct inheritance of props and state.
-class ErrorBoundary extends React.Component<Props, State> {
-  state: State = { hasError: false };
+class ErrorBoundary extends Component<Props, State> {
+  constructor(props: Props) {
+    super(props);
+    this.state = { hasError: false };
+  }
 
   static getDerivedStateFromError(_: Error): State {
     // Update state so the next render will show the fallback UI.
     return { hasError: true };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log the error to the console for debugging.
     console.error("Uncaught error in component:", error, errorInfo);
   }
 
   componentDidUpdate(prevProps: Props) {
+    // Check if resetKey has changed to reset the error state
     if (this.props.resetKey !== prevProps.resetKey) {
       if (this.state.hasError) {
         this.setState({ hasError: false });
@@ -33,7 +34,7 @@ class ErrorBoundary extends React.Component<Props, State> {
     }
   }
 
-  render(): React.ReactNode {
+  render(): ReactNode {
     if (this.state.hasError) {
       // Render a fallback UI when a rendering error occurs.
       return (
