@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { memo } from 'react';
 import { Anecdote } from '../types';
 import { EditIcon } from './icons';
 import { MarkdownPreview } from './MarkdownPreview';
@@ -10,7 +11,7 @@ interface AnecdoteEntryProps {
     searchQuery?: string;
 }
 
-export const AnecdoteEntry: React.FC<AnecdoteEntryProps> = ({ anecdote, onEdit, searchQuery }) => {
+export const AnecdoteEntry: React.FC<AnecdoteEntryProps> = memo(({ anecdote, onEdit, searchQuery }) => {
     return (
       <article className="bg-surface-light p-4 rounded-xl shadow-md relative">
         <button
@@ -27,4 +28,6 @@ export const AnecdoteEntry: React.FC<AnecdoteEntryProps> = ({ anecdote, onEdit, 
         </div>
       </article>
     );
-  };
+  });
+
+AnecdoteEntry.displayName = 'AnecdoteEntry';

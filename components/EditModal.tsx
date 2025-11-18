@@ -24,24 +24,46 @@ const getTodayDateString = () => {
 
 export const EditModal: React.FC<EditModalProps> = ({ isOpen, mode, anecdoteToEdit, onSave, onClose }) => {
     const [text, setText] = useState('');
+    // Separate state for the preview rendering to allow debouncing
+    const [debouncedText, setDebouncedText] = useState(''); 
     const [date, setDate] = useState(getTodayDateString());
     const [selectedText, setSelectedText] = useState('');
 
     const editorRef = useRef<HTMLTextAreaElement>(null);
     const previewRef = useRef<HTMLDivElement>(null);
+    const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
         if (isOpen) {
             if (mode === 'edit' && anecdoteToEdit) {
                 setText(anecdoteToEdit.text);
+                setDebouncedText(anecdoteToEdit.text);
                 setDate(anecdoteToEdit.date);
             } else {
                 setText('');
+                setDebouncedText('');
                 setDate(getTodayDateString());
             }
             setSelectedText('');
         }
     }, [isOpen, mode, anecdoteToEdit]);
+
+    // Debounce Logic
+    useEffect(() => {
+        if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current);
+        }
+        
+        debounceTimerRef.current = setTimeout(() => {
+            setDebouncedText(text);
+        }, 300); // Update preview 300ms after last keystroke
+
+        return () => {
+            if (debounceTimerRef.current) {
+                clearTimeout(debounceTimerRef.current);
+            }
+        };
+    }, [text]);
 
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
@@ -177,14 +199,14 @@ export const EditModal: React.FC<EditModalProps> = ({ isOpen, mode, anecdoteToEd
                 {/* Preview Pane */}
                 <div className="flex flex-col h-full">
                     <label className="block text-sm font-medium text-secondary mb-2">
-                        Vorschau
+                        Vorschau (Markdown)
                     </label>
                     <div 
                         ref={previewRef}
                         className="w-full flex-grow bg-surface-light border border-border rounded-md p-3 overflow-y-auto"
                     >
-                        <ErrorBoundary resetKey={text}>
-                            <MarkdownPreview content={text} selectionHighlight={selectedText} />
+                        <ErrorBoundary resetKey={debouncedText}>
+                            <MarkdownPreview content={debouncedText} selectionHighlight={selectedText} />
                         </ErrorBoundary>
                     </div>
                 </div>
