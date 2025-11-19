@@ -28,6 +28,7 @@ export const EditModal: React.FC<EditModalProps> = ({ isOpen, mode, anecdoteToEd
     const [debouncedText, setDebouncedText] = useState(''); 
     const [date, setDate] = useState(getTodayDateString());
     const [selectedText, setSelectedText] = useState('');
+    const [activeTab, setActiveTab] = useState<'write' | 'preview'>('write');
 
     const editorRef = useRef<HTMLTextAreaElement>(null);
     const previewRef = useRef<HTMLDivElement>(null);
@@ -45,6 +46,7 @@ export const EditModal: React.FC<EditModalProps> = ({ isOpen, mode, anecdoteToEd
                 setDate(getTodayDateString());
             }
             setSelectedText('');
+            setActiveTab('write');
         }
     }, [isOpen, mode, anecdoteToEdit]);
 
@@ -178,36 +180,54 @@ export const EditModal: React.FC<EditModalProps> = ({ isOpen, mode, anecdoteToEd
                 </button>
             </header>
 
+            {/* Mobile Tabs - Visible only on small screens */}
+            <div className="md:hidden flex border-b border-border flex-shrink-0">
+                <button 
+                    className={`flex-1 py-3 text-sm font-semibold transition-colors ${activeTab === 'write' ? 'text-accent border-b-2 border-accent bg-surface-light/30' : 'text-secondary hover:text-primary'}`}
+                    onClick={() => setActiveTab('write')}
+                >
+                    Schreiben
+                </button>
+                <button 
+                    className={`flex-1 py-3 text-sm font-semibold transition-colors ${activeTab === 'preview' ? 'text-accent border-b-2 border-accent bg-surface-light/30' : 'text-secondary hover:text-primary'}`}
+                    onClick={() => setActiveTab('preview')}
+                >
+                    Vorschau
+                </button>
+            </div>
+
             {/* Content */}
-            <main className="flex-grow p-4 grid grid-cols-1 md:grid-cols-2 gap-4 overflow-hidden">
-                {/* Editor Pane */}
-                <div className="flex flex-col h-full">
-                    <label htmlFor="modal-editor" className="block text-sm font-medium text-secondary mb-2">
-                        Editor
-                    </label>
-                    <textarea
-                        id="modal-editor"
-                        ref={editorRef}
-                        value={text}
-                        onChange={(e) => setText(e.target.value)}
-                        onSelect={handleSelect}
-                        className="w-full flex-grow bg-surface-light border border-border rounded-md px-3 py-2 text-secondary placeholder-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent resize-none font-mono"
-                        aria-label="Text bearbeiten"
-                        placeholder="Beginne zu schreiben..."
-                    />
-                </div>
-                {/* Preview Pane */}
-                <div className="flex flex-col h-full">
-                    <label className="block text-sm font-medium text-secondary mb-2">
-                        Vorschau (Markdown)
-                    </label>
-                    <div 
-                        ref={previewRef}
-                        className="w-full flex-grow bg-surface-light border border-border rounded-md p-3 overflow-y-auto"
-                    >
-                        <ErrorBoundary resetKey={debouncedText}>
-                            <MarkdownPreview content={debouncedText} selectionHighlight={selectedText} />
-                        </ErrorBoundary>
+            <main className="flex-grow p-4 overflow-hidden relative">
+                <div className="h-full w-full md:grid md:grid-cols-2 md:gap-4">
+                    {/* Editor Pane */}
+                    <div className={`flex flex-col h-full ${activeTab === 'write' ? '' : 'hidden'} md:flex`}>
+                        <label htmlFor="modal-editor" className="block text-sm font-medium text-secondary mb-2">
+                            Editor
+                        </label>
+                        <textarea
+                            id="modal-editor"
+                            ref={editorRef}
+                            value={text}
+                            onChange={(e) => setText(e.target.value)}
+                            onSelect={handleSelect}
+                            className="w-full flex-grow bg-surface-light border border-border rounded-md px-3 py-2 text-secondary placeholder-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent resize-none font-mono text-base"
+                            aria-label="Text bearbeiten"
+                            placeholder="Beginne zu schreiben..."
+                        />
+                    </div>
+                    {/* Preview Pane */}
+                    <div className={`flex flex-col h-full ${activeTab === 'preview' ? '' : 'hidden'} md:flex`}>
+                        <label className="block text-sm font-medium text-secondary mb-2">
+                            Vorschau (Markdown)
+                        </label>
+                        <div 
+                            ref={previewRef}
+                            className="w-full flex-grow bg-surface-light border border-border rounded-md p-3 overflow-y-auto"
+                        >
+                            <ErrorBoundary resetKey={debouncedText}>
+                                <MarkdownPreview content={debouncedText} selectionHighlight={selectedText} />
+                            </ErrorBoundary>
+                        </div>
                     </div>
                 </div>
             </main>
