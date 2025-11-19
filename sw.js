@@ -6,14 +6,14 @@
  * 2. Cache, then Network Fallback: For all static assets (CSS, JS, images, fonts). This serves assets instantly from the cache.
  */
 
-const CACHE_NAME = 'knowledge-journal-cache-v1';
+const CACHE_NAME = 'knowledge-journal-cache-v2';
 
 // A list of essential assets to be pre-cached during the service worker installation.
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/index.tsx', // In a real app this would be the bundled JS file
-  'https://cdn-icons-png.freepik.com/512/3352/3352473.png',
+  'https://cdn-icons-png.flaticon.com/512/2232/2232688.png',
   'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200',
   'https://fonts.gstatic.com/s/materialsymbolsoutlined/v195/kJF1BvYX7BgnkSrUwT8OhrdQw4oELdPIeeII9v6oFsI.woff2',
   'https://cdn.tailwindcss.com',
