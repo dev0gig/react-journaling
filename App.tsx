@@ -206,47 +206,70 @@ function App() {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
-    const newAnecdotes: Anecdote[] = [];
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-
-    for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        if (file.name.endsWith('.zip')) {
-            const zip = await JSZip.loadAsync(file);
-            for (const filename in zip.files) {
-                const zipEntry = zip.files[filename];
-                if (!zipEntry.dir && filename.endsWith('.md')) {
-                    const date = filename.replace(/\.md$/, '').split('/').pop();
-                    if (date && dateRegex.test(date)) {
-                        const content = await zipEntry.async('string');
-                        newAnecdotes.push({
-                            id: `imported-${date}-${Date.now()}-${Math.random()}`,
-                            date: date,
-                            text: String(content),
-                        });
-                    }
-                }
-            }
-        } else if (file.name.endsWith('.md')) {
-            const date = file.name.replace(/\.md$/, '');
-            if (dateRegex.test(date)) {
-                const content = await file.text();
-                newAnecdotes.push({
-                    id: `imported-${date}-${Date.now()}-${Math.random()}`,
-                    date: date,
-                    text: content,
-                });
-            }
+    // Warn user if they are about to overwrite data
+    if (anecdotes.length > 0) {
+        const confirmed = window.confirm("Warnung: Dieser Import wird alle bestehenden Einträge ersetzen. Möchten Sie fortfahren?");
+        if (!confirmed) {
+            event.target.value = '';
+            return;
         }
     }
-    
-    if (newAnecdotes.length > 0) {
-        await mergeAndSaveEntries(newAnecdotes);
+
+    setIsLoading(true);
+
+    try {
+        const newAnecdotes: Anecdote[] = [];
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            if (file.name.endsWith('.zip')) {
+                const zip = await JSZip.loadAsync(file);
+                for (const filename in zip.files) {
+                    const zipEntry = zip.files[filename];
+                    if (!zipEntry.dir && filename.endsWith('.md')) {
+                        const date = filename.replace(/\.md$/, '').split('/').pop();
+                        if (date && dateRegex.test(date)) {
+                            const content = await zipEntry.async('string');
+                            newAnecdotes.push({
+                                id: `imported-${date}-${Date.now()}-${Math.random()}`,
+                                date: date,
+                                text: String(content),
+                            });
+                        }
+                    }
+                }
+            } else if (file.name.endsWith('.md')) {
+                const date = file.name.replace(/\.md$/, '');
+                if (dateRegex.test(date)) {
+                    const content = await file.text();
+                    newAnecdotes.push({
+                        id: `imported-${date}-${Date.now()}-${Math.random()}`,
+                        date: date,
+                        text: content,
+                    });
+                }
+            }
+        }
+        
+        if (newAnecdotes.length > 0) {
+            await deleteAllAnecdotes();
+            await saveAnecdotesBatch(newAnecdotes);
+            const allAnecdotesFromDb = await getAllAnecdotes();
+            setAnecdotes(allAnecdotesFromDb);
+        } else {
+            alert("Keine gültigen Journal-Dateien im Import gefunden.");
+        }
+    } catch (error) {
+        console.error("Import failed", error);
+        alert("Fehler beim Importieren der Daten.");
+    } finally {
+        setIsLoading(false);
     }
 
     event.target.value = ''; // Reset input
     setIsSettingsOpen(false);
-  }, [mergeAndSaveEntries]);
+  }, [anecdotes]);
 
   const sortedAnecdotes = useMemo(() => 
     [...anecdotes].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
