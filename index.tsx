@@ -2,6 +2,8 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
+document.cookie = "cookieName=unicornCookieValue; path=/react-journaling";
+
 // Service Worker Registration Script
 // This script registers the service worker to enable offline capabilities and improve performance.
 if ('serviceWorker' in navigator) {

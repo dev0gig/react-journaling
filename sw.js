@@ -13,7 +13,8 @@ const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/index.tsx', // In a real app this would be the bundled JS file
-  'https://cdn-icons-png.flaticon.com/512/2232/2232688.png',
+  '/icons/book.png',
+  '/manifest.json',
   'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200',
   'https://fonts.gstatic.com/s/materialsymbolsoutlined/v195/kJF1BvYX7BgnkSrUwT8OhrdQw4oELdPIeeII9v6oFsI.woff2',
   'https://cdn.tailwindcss.com',
@@ -104,17 +105,17 @@ self.addEventListener('fetch', event => {
 
         // If the asset is not in the cache, fetch it from the network.
         return fetch(request).then(networkResponse => {
-            // If the fetch succeeds, cache the new response and return it.
-            const responseToCache = networkResponse.clone();
-            caches.open(CACHE_NAME)
-              .then(cache => {
-                cache.put(request, responseToCache);
-              });
-            return networkResponse;
-          })
+          // If the fetch succeeds, cache the new response and return it.
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME)
+            .then(cache => {
+              cache.put(request, responseToCache);
+            });
+          return networkResponse;
+        })
           .catch(error => {
-              console.error('[Service Worker] Fetch failed for:', request.url, error);
-              // We could return a placeholder for failed assets like images here if needed.
+            console.error('[Service Worker] Fetch failed for:', request.url, error);
+            // We could return a placeholder for failed assets like images here if needed.
           });
       })
   );

@@ -1,0 +1,15 @@
+{
+    "short_name": "Journal",
+    "name": "Knowledge Journal",
+    "icons": [
+        {
+            "src": "icons/book.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ],
+    "start_url": ".",
+    "display": "standalone",
+    "theme_color": "#201f24",
+    "background_color": "#201f24"
+}
