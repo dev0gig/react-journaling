@@ -7,14 +7,14 @@
  */
 
 const CACHE_NAME = 'knowledge-journal-cache-v2';
+const BASE_PATH = '/react-journaling';
 
 // A list of essential assets to be pre-cached during the service worker installation.
 const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/index.tsx', // In a real app this would be the bundled JS file
-  '/icons/book.png',
-  '/manifest.json',
+  `${BASE_PATH}/`,
+  `${BASE_PATH}/index.html`,
+  `${BASE_PATH}/icons/book.png`,
+  `${BASE_PATH}/manifest.json`,
   'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200',
   'https://fonts.gstatic.com/s/materialsymbolsoutlined/v195/kJF1BvYX7BgnkSrUwT8OhrdQw4oELdPIeeII9v6oFsI.woff2',
   'https://cdn.tailwindcss.com',
@@ -69,6 +69,11 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const { request } = event;
 
+  // Only handle requests within our scope
+  if (!request.url.includes(BASE_PATH)) {
+    return;
+  }
+
   // Strategy 1: Network Fallback, then Cache (for navigation requests, e.g., HTML files)
   if (request.mode === 'navigate') {
     event.respondWith(
@@ -88,7 +93,7 @@ self.addEventListener('fetch', event => {
           // If the network request fails (e.g., user is offline),
           // try to serve the page from the cache.
           console.log('[Service Worker] Network failed, serving from cache for:', request.url);
-          return caches.match('/'); // Fallback to the cached root page.
+          return caches.match(`${BASE_PATH}/`); // Fallback to the cached subfolder root page.
         })
     );
     return;

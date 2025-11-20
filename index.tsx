@@ -15,7 +15,9 @@ if ('serviceWorker' in navigator) {
     // paths might resolve to an incorrect origin.
     const swUrl = new URL('sw.js', window.location.href);
 
-    navigator.serviceWorker.register(swUrl.href)
+    navigator.serviceWorker.register(swUrl.href, {
+      scope: '/react-journaling/'
+    })
       .then(registration => {
         console.log('Service Worker registered successfully with scope:', registration.scope);
       })
