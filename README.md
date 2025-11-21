@@ -122,13 +122,13 @@ Die App kann als eigenständige Progressive Web App installiert werden:
 react-journaling/
 ├── public/
 │   ├── icons/              # PWA Icons
-│   └── manifest.json       # PWA Manifest (scope: "./")
+│   ├── manifest.json       # PWA Manifest (scope: "./")
+│   └── sw.js               # Service Worker (MUSS im public/ Ordner sein!)
 ├── components/             # React Komponenten
 ├── services/               # API Services
 ├── utils/                  # Utility Funktionen
 ├── App.tsx                 # Haupt-App-Komponente
 ├── index.tsx               # Entry Point + SW Registrierung
-├── sw.js                   # Service Worker
 ├── vite.config.ts          # Vite Konfiguration
 └── package.json            # Dependencies & Scripts
 ```

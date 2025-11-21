@@ -245,6 +245,8 @@ root.render(
 
 #### 📄 `sw.js` - Service Worker Anpassungen
 
+**⚠️ WICHTIG:** Die `sw.js` Datei **MUSS** im `public/` Ordner liegen, damit Vite sie korrekt in den Build kopiert!
+
 Der Service Worker muss die Unterordner-Pfade berücksichtigen:
 
 ```javascript
