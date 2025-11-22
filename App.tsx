@@ -40,6 +40,7 @@ function App() {
     const [selectedYear, setSelectedYear] = useState<number | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const [scrollToId, setScrollToId] = useState<string | null>(null);
 
     useEffect(() => {
         const loadData = async () => {
@@ -407,6 +408,32 @@ function App() {
         setSearchQuery('');
     };
 
+    const handleNavigateToEntry = (date: string, anecdoteId: string) => {
+        const year = parseInt(date.split('-')[0]);
+        const monthKey = date.substring(0, 7); // YYYY-MM
+
+        setSelectedYear(year);
+        setSelectedMonth(monthKey);
+        setSearchQuery('');
+        setCurrentView('journal');
+        setScrollToId(anecdoteId);
+    };
+
+    useEffect(() => {
+        if (scrollToId && currentView === 'journal' && !isLoading) {
+            const timer = setTimeout(() => {
+                const element = document.getElementById(scrollToId);
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    element.classList.add('ring-2', 'ring-accent', 'ring-offset-2');
+                    setTimeout(() => element.classList.remove('ring-2', 'ring-accent', 'ring-offset-2'), 2000);
+                    setScrollToId(null);
+                }
+            }, 300);
+            return () => clearTimeout(timer);
+        }
+    }, [scrollToId, currentView, isLoading, selectedMonth]);
+
     const handleSettingsSave = (newUrl: string, newPositionY: number) => {
         setBannerUrl(newUrl);
         setBannerPositionY(newPositionY);
@@ -503,6 +530,7 @@ function App() {
                                 anecdotes={anecdotes}
                                 onUpdate={handleUpdateEntry}
                                 onBack={() => setCurrentView('journal')}
+                                onNavigate={handleNavigateToEntry}
                             />
                         ) : (
                             <>
@@ -640,11 +668,7 @@ function App() {
                     </div>
                 </div>
             </main>
-            <footer className="py-6 text-center text-xs text-secondary">
-                <a href="https://www.flaticon.com/free-icons/book" title="book icons" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">
-                    Book icons created by Smashicons - Flaticon
-                </a>
-            </footer>
+
         </div>
     );
 }

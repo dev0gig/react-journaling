@@ -7,6 +7,7 @@ interface TodoViewProps {
     anecdotes: Anecdote[];
     onUpdate: (anecdote: Anecdote) => void;
     onBack: () => void;
+    onNavigate: (date: string, anecdoteId: string) => void;
 }
 
 interface TodoItem {
@@ -20,7 +21,7 @@ interface TodoItem {
     marker: string; // "TODO", "DONE", "[ ]", "[x]"
 }
 
-export const TodoView: React.FC<TodoViewProps> = ({ anecdotes, onUpdate, onBack }) => {
+export const TodoView: React.FC<TodoViewProps> = ({ anecdotes, onUpdate, onBack, onNavigate }) => {
 
     // Extract all tasks from all anecdotes
     const allTodos = useMemo(() => {
@@ -34,13 +35,13 @@ export const TodoView: React.FC<TodoViewProps> = ({ anecdotes, onUpdate, onBack 
                 // Group 2: Marker (TODO, DONE, [ ], [x])
                 // Group 3: Task text
                 const match = line.match(/^(\s*(?:(?:-\s+)|(?:\d+\.\s+))*)(TODO|DONE|\[[ xX]\])\s+(.*)/i);
-                
+
                 if (match) {
                     const prefix = match[1];
                     const marker = match[2];
                     const text = match[3];
                     const upperMarker = marker.toUpperCase();
-                    
+
                     const isCompleted = upperMarker === 'DONE' || marker.includes('x') || marker.includes('X');
 
                     todos.push({
@@ -73,7 +74,7 @@ export const TodoView: React.FC<TodoViewProps> = ({ anecdotes, onUpdate, onBack 
         if (lines.length <= todo.lineIndex) return;
 
         const line = lines[todo.lineIndex];
-        
+
         // Reconstruct the line with swapped status
         let newLine = line;
         const upperMarker = todo.marker.toUpperCase();
@@ -116,7 +117,7 @@ export const TodoView: React.FC<TodoViewProps> = ({ anecdotes, onUpdate, onBack 
                         </p>
                     </div>
                 </div>
-                <button 
+                <button
                     onClick={onBack}
                     className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-primary bg-surface-light rounded-md hover:bg-border transition-colors"
                 >
@@ -142,7 +143,7 @@ export const TodoView: React.FC<TodoViewProps> = ({ anecdotes, onUpdate, onBack 
                             </h3>
                             <div className="bg-surface-light rounded-xl overflow-hidden shadow-sm border border-border/50">
                                 {groupedTodos[date].map(todo => (
-                                    <div 
+                                    <div
                                         key={todo.id}
                                         className={`
                                             group flex items-start gap-3 p-3 border-b border-border/50 last:border-0 transition-colors hover:bg-surface
@@ -153,15 +154,18 @@ export const TodoView: React.FC<TodoViewProps> = ({ anecdotes, onUpdate, onBack 
                                             onClick={() => handleToggle(todo)}
                                             className={`
                                                 mt-1 flex-shrink-0 w-5 h-5 rounded border flex items-center justify-center transition-all duration-200
-                                                ${todo.isCompleted 
-                                                    ? 'bg-accent border-accent text-background' 
+                                                ${todo.isCompleted
+                                                    ? 'bg-accent border-accent text-background'
                                                     : 'border-secondary hover:border-accent'
                                                 }
                                             `}
                                         >
                                             {todo.isCompleted && <span className="material-symbols-outlined text-sm font-bold">check</span>}
                                         </button>
-                                        <div className={`flex-grow break-words ${todo.isCompleted ? 'text-secondary line-through' : 'text-primary'}`}>
+                                        <div
+                                            className={`flex-grow break-words cursor-pointer hover:text-accent transition-colors ${todo.isCompleted ? 'text-secondary line-through' : 'text-primary'}`}
+                                            onClick={() => onNavigate(todo.date, todo.anecdoteId)}
+                                        >
                                             {todo.text}
                                         </div>
                                         <div className="opacity-0 group-hover:opacity-100 transition-opacity text-xs text-secondary px-2 py-1 bg-surface rounded">
